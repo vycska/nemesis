@@ -2,9 +2,8 @@
 #define __TASK_BME280_H__
 
 struct Task_BME280_Data {
-   int ready,units_p,base;
-   double h, p, t,
-          p_base;
+   int ready;
+   double h, p, t;
 };
 
 void Task_BME280(void);

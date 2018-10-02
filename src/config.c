@@ -16,7 +16,6 @@ struct Config_Data config_data[] = {
    {(char*)&led_data.enabled,          (short)sizeof(led_data.enabled)},
    {(char*)output_data.mask,           (short)sizeof(output_data.mask)},
    {(char*)&uart_data.uart_in_enabled, (short)sizeof(uart_data.uart_in_enabled)},
-   {(char*)&task_bme280_data.units_p,  (short)sizeof(task_bme280_data.units_p)}
 };
 
 int config_load(void) {

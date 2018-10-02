@@ -1,4 +1,5 @@
 #include "task_command_parser.h"
+#include "adc.h"
 #include "bme280.h"
 #include "config.h"
 #include "ds3231.h"
@@ -27,6 +28,7 @@ int params_integer(char,unsigned int*);
 extern char _flash_start, _flash_end, _ram_start, _ram_end;
 extern int mutex_i2c0;
 extern volatile long long int millis;
+extern volatile struct ADC_Data adc_data;
 extern struct BME280_Data bme280_data;
 extern struct LED_Data led_data;
 extern struct Output_Data output_data;
@@ -50,28 +52,28 @@ void Task_Command_Parser(void) {
       params_fill(pString, params);
 
       switch(crc16((unsigned char *)params[1], strlen((char *)params[1]))) {
-         case 0x178a: //system_reset
+         case 0xa5a4: //sr [system reset]
             SystemReset();
             break;
-         case 0x57e6: //millis
+         case 0xeed: //mi [millis]
             mysprintf(buf, "%l", (char *)&millis);
             output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
             break;
-         case 0xd89c: //live_time
+         case 0x972c: //lt [live time]
             mysprintf(buf, "%d,%d:%d:%d", (int)(millis / 1000 / 60 / 60 / 24), (int)(millis / 1000 / 60 / 60 % 24), (int)(millis / 1000 / 60 % 60), (int)(millis / 1000 % 60));
             output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
             break;
-         case 0xca53: //task_info
+         case 0x9ee6: //ti [task info]
             for(i = 0; i < NUMTHREADS; i++) {
                mysprintf(buf, "%d %s %n pr: %d %n sp: %x sb: %x su: %d %n sl: %d %n bl: %x",
                (int)tcbs[i].id, tcbs[i].name, 20-strlen(tcbs[i].name), (int)tcbs[i].priority, 4-ndigits(tcbs[i].priority), tcbs[i].stack_pointer, tcbs[i].stack_base, tcbs[i].stack_usage, 7-ndigits(tcbs[i].stack_usage), tcbs[i].sleep, 7-ndigits(tcbs[i].sleep), tcbs[i].block);
                output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
             }
             break;
-         case 0x426e: //config_save
+         case 0xa568: //cs [config save]
             config_save();
             break;
-         case 0x987d: //address
+         case 0x9223: //xx [value at address]
             if(params_count(params)==2 && !params_integer(2,params)) {
                for(t=0, l=1,i=strlen((char*)params[2])-1; i>=2; l*= 16, i--)
                   t += l * (((char*)params[2])[i]>='0' && ((char*)params[2])[i]<='9' ? (((char*)params[2])[i]-'0') : (((char*)params[2])[i]>='a' && ((char*)params[2])[i]<='f' ? (10+((char*)params[2])[i]-'a') : (0)));
@@ -81,7 +83,7 @@ void Task_Command_Parser(void) {
                }
             }
             break;
-         case 0x3f19: //output_mask
+         case 0xaded: //om [output mask]
             if(params_count(params)==2) {
                for(i=0; i<(int)eOutputSubsystemLast; i++)
                   output_data.mask[i] = params[2];
@@ -95,8 +97,6 @@ void Task_Command_Parser(void) {
                mysprintf(buf,"BME280 %d",(int)eOutputSubsystemBME280);
                output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
                mysprintf(buf,"DS18B20 %d",(int)eOutputSubsystemDS18B20);
-               output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
-               mysprintf(buf,"Oled %d",(int)eOutputSubsystemOled);
                output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
                mysprintf(buf,"System %d",(int)eOutputSubsystemSystem);
                output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
@@ -116,14 +116,7 @@ void Task_Command_Parser(void) {
                }
             }
             break;
-         case 0x7fb9: //units_p
-            task_bme280_data.units_p ^= 1;
-            break;
-         case 0x5b34: //p_base
-            task_bme280_data.base = 1;
-            task_bme280_data.p_base = task_bme280_data.p;
-            break;
-         case 0xa577: //bme280_config
+         case 0x3de9: //bm [bme280 info]
             mysprintf(buf, "dig_T1: %d", (int)bme280_data.dig_T1);
             output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
 
@@ -208,11 +201,7 @@ void Task_Command_Parser(void) {
             mysprintf(buf, "ct: %d", (int)bme280_data.ct);
             output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
             break;
-         case 0xed5: //psr
-            mysprintf(buf, "0x%x", GetPSR());
-            output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
-            break;
-         case 0x7f7e: //iap_info
+         case 0xceef: //ii [iap info]
             t = iap_read_part_id();
             l = mysprintf(&buf[0], "Part id: 0x%x\r\n", t);
             t = iap_read_boot_code_version();
@@ -221,7 +210,7 @@ void Task_Command_Parser(void) {
             l += mysprintf(&buf[l], "UID: %u %u %u %u", *((unsigned int *)t + 0), *((unsigned int *)t + 1), *((unsigned int *)t + 2), *((unsigned int *)t + 3));
             output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
             break;
-         case 0x3fab: //uart_in_enabled
+         case 0xc8e6: //ua [uart in enabled]
             if(uart_data.uart_in_enabled) {
                ICER0 = (1<<3);
                uart_data.uart_in_enabled = 0;
@@ -232,24 +221,41 @@ void Task_Command_Parser(void) {
                uart_data.uart_in_enabled = 1;
             }
             break;
-         case 0xfb7e: //led_enabled
+         case 0x9bec: //le [led enabled]
             led_data.enabled ^= 1;
             if(!led_data.enabled) {
                led_data.counter = 0;
                LED_Off();
             }
             break;
-         case 0xb400: //led_dc
+         case 0x5b2d: //ld [led dc]
             led_data.counter = 0;
             led_data.dc = params[2];
             break;
-         case 0x4d2c: //led_period
+         case 0x542d: //lp [led period]
             led_data.counter = 0;
             led_data.period = params[2];
             break;
-         case 0xe89e: //crc16
+         case 0x65a9: //cr [crc16]
             mysprintf(buf, "0x%x", (unsigned int)crc16((unsigned char *)params[2], strlen((char *)params[2])));
             output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
+            break;
+         case 0x55ab: //dr [ds3231 read register]
+            if(params_count(params)==2 && params[2]<=0x12) {
+               unsigned char value;
+               Task_Blocking_Wait(&mutex_i2c0);
+               DS3231_ReadRegisters(params[2], &value, 1);
+               Task_Blocking_Signal(&mutex_i2c0);
+               mysprintf(buf,"[%x] : %x",params[2],(unsigned int)value);
+               output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
+            }
+            break;
+         case 0x566b: //dw [ds3231 write register]
+            if(params_count(params)==3 && params[2]<=0x12) {
+               Task_Blocking_Wait(&mutex_i2c0);
+               DS3231_WriteRegister(params[2], params[3]);
+               Task_Blocking_Signal(&mutex_i2c0);
+            }
             break;
          case 0x6b25: //sd [set date]
             if(params_count(params)==8) { //sd 2018 09 30 7 18 2 40
@@ -270,7 +276,9 @@ void Task_Command_Parser(void) {
          case 0x6b2a: //gd [get date]
             if(params_count(params)==1) {
                struct tm dt;
+               Task_Blocking_Wait(&mutex_i2c0);
                DS3231_GetDate(&dt);
+               Task_Blocking_Signal(&mutex_i2c0);
                mysprintf(buf, "%d-%d-%d [%d] %d:%d:%d",
                      1900+dt.tm_year,
                      1+dt.tm_mon,
@@ -282,7 +290,36 @@ void Task_Command_Parser(void) {
                output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
                break;
             }
-         case 0x67bf: //t [temperature]
+         case 0x68e5: //sa [set alarm]
+            if(params_count(params)>1) {
+               switch(params[2]) {
+                  case 1: //sa 1 32 0 25 61 30
+                     if(params_count(params)==7) {
+                        Task_Blocking_Wait(&mutex_i2c0);
+                        DS3231_DisableAlarm(1);
+                        DS3231_SetAlarm1(params[3],params[4],params[5],params[6],params[7]);
+                        Task_Blocking_Signal(&mutex_i2c0);
+                     }
+                     break;
+                  case 2: //sa 2 32 0 25 0
+                     if(params_count(params)==6) {
+                        Task_Blocking_Wait(&mutex_i2c0);
+                        DS3231_DisableAlarm(2);
+                        DS3231_SetAlarm2(params[3],params[4],params[5],params[6]);
+                        Task_Blocking_Signal(&mutex_i2c0);
+                     }
+                     break;
+               }
+            }
+            break;
+         case 0x98ea: //da [disable alarm]
+            if(params_count(params)==2 && (params[2]==1 || params[2]==2)) {
+               Task_Blocking_Wait(&mutex_i2c0);
+               DS3231_DisableAlarm(params[2]);
+               Task_Blocking_Signal(&mutex_i2c0);
+            }
+            break;
+         case 0x9be6: //te [temperature]
             if(params_count(params)==1) { //cia tikrinu siaip, del kintamojo t deklaravimo
                double t;
                t = DS3231_GetTemperature()/100.0;
@@ -290,7 +327,13 @@ void Task_Command_Parser(void) {
                output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
             }
             break;
-         case 0xbf26: //temp
+         case 0x38e9: //ba [battery]
+            if(params_count(params)==1) {
+               double v;
+               v = ((double)adc_data.sum/adc_data.count)/4095.0*3.3 * 2;
+               mysprintf(buf, "%f2 V",(char*)&v);
+               output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
+            }
             break;
          default:
             output("Unknown command", eOutputSubsystemSystem, eOutputLevelImportant, 0);

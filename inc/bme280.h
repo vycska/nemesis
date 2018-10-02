@@ -27,8 +27,8 @@ struct BME280_Data {
    int uh, up, ut, ch, cp, ct;
 };
 
-int BME280_RegisterRead(unsigned int, unsigned char *, int);
-int BME280_RegisterWrite(unsigned int, unsigned char *, int);
+int BME280_RegisterRead(unsigned char, unsigned char *, int);
+int BME280_RegisterWrite(unsigned char, unsigned char);
 int BME280_Init(void);
 int BME280_GetID(unsigned char *);
 int BME280_StartForcedMeasurement(void);

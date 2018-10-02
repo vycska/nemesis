@@ -112,7 +112,7 @@ void main(void) {
    OS_Init(NUMTHREADS,
          "switch",            3,    576,     Task_Switch,
          "uart_input",        3,    256,     Task_Uart_Input,
-         "command_parser",    4,    576,     Task_Command_Parser,
+         "command_parser",    4,    768,     Task_Command_Parser,
          "bme280",            6,    576,     Task_BME280,
          "ds18b20",           6,    576,     Task_DS18B20,
          "uart_output",       8,    256,     Task_Uart_Output,

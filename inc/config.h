@@ -1,7 +1,7 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#define CONFIG_VERSION (2)
+#define CONFIG_VERSION (3)
 #define CONFIG_PAGE (511)
 
 struct Config_Data {

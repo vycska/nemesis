@@ -7,36 +7,27 @@
 
 struct BME280_Data bme280_data;
 
-int BME280_RegisterRead(unsigned int r, unsigned char *d, int l) {
-   unsigned char reg[1];
-   int ok;
-   struct I2C_Data i2c_data;
-
-   i2c_data.slave = BME280_SLAVE;
-   i2c_data.direction = 2;        //write then read
-   reg[0] = r;
-   i2c_data.buffer[0] = reg;
-   i2c_data.length[0] = 1;
-   i2c_data.buffer[1] = d;
-   i2c_data.length[1] = l;
-   ok = I2C_Transaction(0,&i2c_data);
-   return ok;
+int BME280_RegisterRead(unsigned char reg, unsigned char *d, int k) {
+   unsigned char *pdata[2];
+   int dir[2],length[2];
+   pdata[0] = &reg;
+   pdata[1] = d;
+   dir[0] = 0;
+   dir[1] = 1;
+   length[0] = 1;
+   length[1] = k;
+   return I2C_Transaction(0, BME280_SLAVE, 2, dir, pdata, length);
 }
 
-int BME280_RegisterWrite(unsigned int r, unsigned char *d, int l) {
-   unsigned char reg[1];
-   int ok;
-   struct I2C_Data i2c_data;
-
-   i2c_data.slave = BME280_SLAVE;
-   i2c_data.direction = 0;        //write
-   reg[0] = r;
-   i2c_data.buffer[0] = reg;
-   i2c_data.length[0] = 1;
-   i2c_data.buffer[1] = d;
-   i2c_data.length[1] = l;
-   ok = I2C_Transaction(0,&i2c_data);
-   return ok;
+int BME280_RegisterWrite(unsigned char reg, unsigned char value) {
+   unsigned char data[2], *pdata[1];
+   int dir,length;
+   data[0] = reg;
+   data[1] = value;
+   pdata[0] = data;
+   dir = 0;
+   length = 2;
+   return I2C_Transaction(0, BME280_SLAVE, 1, &dir, pdata, &length);
 }
 
 int BME280_Init(void) {
@@ -101,15 +92,9 @@ int BME280_Init(void) {
    //set oversampling rates
    bme280_data.osrs_h = bme280_data.osrs_p = bme280_data.osrs_t = 5; // oversampling 2^(osrs-1), e.g. 2^(5-1)=16
 
-   data[0] = bme280_data.osrs_h;
-   result = result && BME280_RegisterWrite(0xf2, data, 1);
-
-   data[0] = (bme280_data.osrs_t << 5) | (bme280_data.osrs_p << 2);
-   result = result && BME280_RegisterWrite(0xf4, data, 1);
-
-   //set config
-   data[0] = (0<<2); //filter off
-   result = result && BME280_RegisterWrite(0xf5, data, 1);
+   result = result && BME280_RegisterWrite(0xf2, bme280_data.osrs_h);
+   result = result && BME280_RegisterWrite(0xf4, (bme280_data.osrs_t << 5) | (bme280_data.osrs_p << 2));
+   result = result && BME280_RegisterWrite(0xf5, 0<<2); //set config: filter off
 
    return result;
 }
@@ -119,13 +104,9 @@ int BME280_GetID(unsigned char *id) {
 }
 
 int BME280_StartForcedMeasurement(void) {
-   unsigned char data[1];
    int result=1;
-
-   data[0] = bme280_data.osrs_h;
-   result = result && BME280_RegisterWrite(0xf2, data, 1);
-   data[0] = (bme280_data.osrs_t << 5) | (bme280_data.osrs_p << 2) | (1<<0);
-   result = result && BME280_RegisterWrite(0xf4, data, 1);
+   result = result && BME280_RegisterWrite(0xf2, bme280_data.osrs_h);
+   result = result && BME280_RegisterWrite(0xf4, (bme280_data.osrs_t << 5) | (bme280_data.osrs_p << 2) | (1<<0));
    return result;
 }
 

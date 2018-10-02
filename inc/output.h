@@ -5,10 +5,9 @@ enum eOutputSubsystem {
    eOutputSubsystemADC        = 0,
    eOutputSubsystemBME280     = 1,
    eOutputSubsystemDS18B20    = 2,
-   eOutputSubsystemOled       = 3,
-   eOutputSubsystemSystem     = 4,
-   eOutputSubsystemSwitch     = 5,
-   eOutputSubsystemLast       = 6
+   eOutputSubsystemSystem     = 3,
+   eOutputSubsystemSwitch     = 4,
+   eOutputSubsystemLast       = 5
 };
 
 enum eOutputLevel {
