@@ -1,9 +1,11 @@
 #include "task_command_parser.h"
 #include "adc.h"
+#include "at24c32.h"
 #include "bme280.h"
 #include "config.h"
 #include "ds3231.h"
 #include "fifos.h"
+#include "i2c.h"
 #include "iap.h"
 #include "led.h"
 #include "onewire.h"
@@ -301,7 +303,7 @@ void Task_Command_Parser(void) {
                         Task_Blocking_Signal(&mutex_i2c0);
                      }
                      break;
-                  case 2: //sa 2 32 0 25 0
+                  case 2: //sa 2 32 0 25 61
                      if(params_count(params)==6) {
                         Task_Blocking_Wait(&mutex_i2c0);
                         DS3231_DisableAlarm(2);
@@ -322,7 +324,9 @@ void Task_Command_Parser(void) {
          case 0x9be6: //te [temperature]
             if(params_count(params)==1) { //cia tikrinu siaip, del kintamojo t deklaravimo
                double t;
+               Task_Blocking_Wait(&mutex_i2c0);
                t = DS3231_GetTemperature()/100.0;
+               Task_Blocking_Signal(&mutex_i2c0);
                mysprintf(buf, "ds3231 t: %f2 C", (char *)&t);
                output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
             }
@@ -332,6 +336,47 @@ void Task_Command_Parser(void) {
                double v;
                v = ((double)adc_data.sum/adc_data.count)/4095.0*3.3 * 2;
                mysprintf(buf, "%f2 V",(char*)&v);
+               output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
+            }
+            break;
+         case 0x5a8: //ar [at24c32 read]
+            if(params_count(params)==3) {
+               unsigned char *data = (unsigned char*)0x10000000;
+               Task_Blocking_Wait(&mutex_i2c0);
+               if(AT24C32_read(params[2], data, params[3])) {
+                  for(i=0; i<params[3]; i++) {
+                     mysprintf(buf, "[%x] : %x",params[2]+i, (unsigned int)data[i]);
+                     output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
+                  }
+               }
+               else {
+                  output("Error", eOutputSubsystemSystem, eOutputLevelImportant, 0);
+               }
+               Task_Blocking_Signal(&mutex_i2c0);
+            }
+            else {
+               output("Incorrect syntax", eOutputSubsystemSystem, eOutputLevelImportant, 0);
+            }
+            break;
+         case 0x668: //aw [at24c32 write]
+            if(params_count(params)>3 && params[3]<=4 && params_count(params)==3+params[3]) {
+               unsigned char data[4];
+               for(i=0; i<params[3]; data[i] = (unsigned char)params[3+1+i],i++);
+               Task_Blocking_Wait(&mutex_i2c0);
+               if(!AT24C32_write(params[2], data, params[3]))
+                  output("Error", eOutputSubsystemSystem, eOutputLevelImportant, 0);
+               Task_Blocking_Signal(&mutex_i2c0);
+            }
+            else {
+               output("Incorrect syntax", eOutputSubsystemSystem, eOutputLevelImportant, 0);
+            }
+            break;
+         case 0xf42f: //i0 [i2c0 test slave]
+            if(params_count(params)==2) {
+               Task_Blocking_Wait(&mutex_i2c0);
+               t = I2C_Poll(0, params[2]&0xff, 1);
+               Task_Blocking_Signal(&mutex_i2c0);
+               mysprintf(buf, "0x%x : %u", params[2]&0xff,t);
                output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
             }
             break;

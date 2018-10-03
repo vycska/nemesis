@@ -26,8 +26,6 @@ extern char _data_start_lma, _data_start, _data_end, _bss_start, _bss_end;
 extern char _flash_start, _flash_end, _ram_start, _ram_end;
 extern char _intvecs_size, _text_size, _rodata_size, _data_size, _bss_size, _stack_size, _stacks_size, _heap_size;
 
-extern volatile struct UART_Data uart_data;
-
 int mutex_i2c0;
 volatile long long int millis;
 

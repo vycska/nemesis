@@ -18,7 +18,13 @@ void I2C0_Init(void) {
    I2C0->CFG = (1<<0 | 0<<1 | 0<<2 | 0<<3 | 0<<4); //master enable, slave disable, monitor disabled, timeout disabled, monitor clock stretching disabled
 }
 
-int I2C_Transaction(int block, int slave, int k, int *dir,unsigned char **pdata, int *length) {
+int I2C_Poll(int block, unsigned char slave, int rw) {
+   unsigned char *pdata[1]={0};
+   int dir=rw, length=0;
+   return I2C_Transaction(block, slave, 1, &dir, pdata, &length);
+}
+
+int I2C_Transaction(int block, unsigned char slave, int k, int *dir,unsigned char **pdata, int *length) {
    unsigned char *data;
    int i,j,ok;
    struct I2C_Registers *I2C;
