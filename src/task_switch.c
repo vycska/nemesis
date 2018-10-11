@@ -26,14 +26,14 @@ void Task_Switch(void) {
       Task_Blocking_Wait(&smphr_switch);
       switch(switch_data.active) {
          case 1:
-            Fifo_Command_Parser_Put("led_enabled");
+            Fifo_Command_Parser_Put("led");
             break;
          case 0:
             mysprintf(buf,"switch %d",switch_data.duration);
             output(buf, eOutputSubsystemSwitch, eOutputLevelDebug, 1);
             switch(switch_data.duration/3000) {
                case 1:
-                  Fifo_Command_Parser_Put("uart_in_enabled");
+                  Fifo_Command_Parser_Put("uart");
                   break;
                case 2:
                   Fifo_Command_Parser_Put("config_save");

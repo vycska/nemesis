@@ -1,6 +1,7 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+#define ABS(a) (((a)<0)?(-(a)):(a))
 #define MIN2(a,b) (((a)<(b))?(a):(b))
 #define MIN3(a,b,c) (((a)<(b))?(((c)<(a))?(c):(a)):(((c)<(b))?(c):(b)))
 #define MAX2(a,b) (((a)>(b))?(a):(b))

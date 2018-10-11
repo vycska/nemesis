@@ -175,6 +175,24 @@ struct I2C_Registers {
 #define I2C2 ((struct I2C_Registers*)(0x40070000))
 #define I2C3 ((struct I2C_Registers*)(0x40074000))
 
+//SPI
+struct SPI_Registers {
+   volatile uint32_t CFG,              //configuration register
+                     DLY,              //delay register
+                     STAT,             //status; some status flags can be cleared by writing a 1 to that bit position
+                     INTENSET,         //interrupt enable read and set
+                     INTENCLR,         //interrupt enable clear
+                     RXDAT,            //receive data
+                     TXDATCTL,         //transmit data with control
+                     TXDAT,            //transmit data
+                     TXCTL,            //transmit control
+                     DIV,              //clock divider
+                     INSTSTAT;         //interrupt status
+};
+
+#define SPI0 ((struct SPI_Registers*)(0x40058000))
+#define SPI1 ((struct SPI_Registers*)(0x4005c000))
+
 //USART0
 #define USART0CFG                      (*((volatile uint32_t*)0x40064000)) //USART configuration register
 #define USART0CTL                      (*((volatile uint32_t*)0x40064004)) //USART control register
