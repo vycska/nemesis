@@ -6,6 +6,7 @@
 #include "config.h"
 #include "ds3231.h"
 #include "fifos.h"
+#include "file_system.h"
 #include "i2c.h"
 #include "iap.h"
 #include "led.h"
@@ -471,6 +472,25 @@ void Task_Command_Parser(void) {
                      break;
                }
             }
+            break;
+         case 0xc595: //fs_info
+            mysprintf(buf, "FS_TOTAL_SIZE: %u [%u - %u]", FS_TOTAL_SIZE, FS_START_ADDRESS, FS_END_ADDRESS);
+            output(buf, eOutputSubsystemSystem,eOutputLevelImportant, 1);
+            mysprintf(buf, "SECTORS: %u, SECTOR_SIZE: %u", SECTORS, SECTOR_SIZE);
+            output(buf, eOutputSubsystemSystem,eOutputLevelImportant, 1);
+            mysprintf(buf, "sizeof(DirectoryEntry): %u, sizeof(FS): %u",sizeof(struct DirectoryEntry), sizeof(struct FS));
+            output(buf, eOutputSubsystemSystem,eOutputLevelImportant, 1);
+            mysprintf(buf, "fs_mounted: %u, fs_errors: 0x%x, fs_copy: %u", fs_ismounted(), fs_geterrors(), fs_getcopy());
+            output(buf, eOutputSubsystemSystem,eOutputLevelImportant, 1);
+            for(i=0; i<DIRECTORY_ENTRIES; i++) {
+               l = mysprintf(buf, "[%d]: ",i);
+               if(!fs_direntryempty(i))
+                  l += mysprintf(buf+l, "%s %d %d %d %d", fs_filename(i), fs_filesize(i), fs_filedatasize(i),fs_filerecordsize(i), fs_filerecordsize(i));
+               output(buf, eOutputSubsystemSystem, eOutputLevelImportant, 1);
+            }
+            break;
+         case 0x3da8: //fs_flush
+            fs_flush();
             break;
          default:
             output("Unknown command", eOutputSubsystemSystem, eOutputLevelImportant, 0);

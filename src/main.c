@@ -2,6 +2,7 @@
 #include "adc.h"
 #include "config.h"
 #include "fifos.h"
+#include "file_system.h"
 #include "i2c.h"
 #include "iap.h"
 #include "led.h"
@@ -47,6 +48,12 @@ void main(void) {
    MRT2_Init(1000);
    SPI0_Init();
    UART_Init();
+
+   fs_mount();
+   if(fs_checkdisk()==STATUS_ERROR) {
+      fs_format();
+      output("fs_checkdisk error", eOutputSubsystemSystem, eOutputLevelImportant, -1);
+   }
 
    Fifo_Uart_Output_Init();
    Fifo_Command_Parser_Init();
