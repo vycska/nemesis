@@ -40,6 +40,7 @@ $(TARGET).elf : $(AOBJS) $(COBJS)
 	arm-none-eabi-objdump -d -S -z -w $@ > $(TARGET).lst
 	arm-none-eabi-objcopy -O ihex $@ $(TARGET).hex
 	arm-none-eabi-objcopy -O binary $@ $(TARGET).bin
+	find . -name '*.c' | xargs -n1 wc -l | sort -n -r | sed --silent '1,5p'
 	arm-none-eabi-nm -S --size-sort -r $(TARGET).elf | sed --silent '1,5p'
 	arm-none-eabi-size --format=sysv --common -d $(TARGET).elf
 
