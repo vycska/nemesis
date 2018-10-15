@@ -4,4 +4,6 @@
 #define VERSION 1
 #define CLOCK 30
 
+void SystemReset(void);
+
 #endif

@@ -5,6 +5,7 @@
 
 #define DS3231_SLAVE (0x68)
 
+void DS3231_Init(void);
 int DS3231_ReadRegisters(unsigned char starting_register,unsigned char *data,int k);
 int DS3231_WriteRegister(unsigned char reg,unsigned char value);
 int DS3231_GetTemperature(void);

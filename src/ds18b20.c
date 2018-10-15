@@ -1,6 +1,5 @@
 #include "ds18b20.h"
 #include "onewire.h"
-#include "os.h"
 #include "utils-asm.h"
 
 //select devices -- all or specific [using a serial number with "match ROM" 55h] or binary search ["search ROM" F0h] -- these are ROM commands

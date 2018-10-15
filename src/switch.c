@@ -1,16 +1,15 @@
 #include "switch.h"
 #include "main.h"
-#include "os.h"
+#include "mrt.h"
 #include "utils-asm.h"
 #include "lpc824.h"
 
-extern int smphr_switch;
-extern volatile long long int millis;
+extern volatile unsigned int gInterruptCause;
 
 volatile struct Switch_Data switch_data;
 
 void Switch_Init(void) {
-   PINENABLE0 |= (1<<5); //SWCLK disabled on PIO0_3
+   PINENABLE0 |= (1<<5); //SWDIO disabled on PIO0_2
    PIO0_2 = (1<<3 | 1<<5 | 0<<6 | 0<<10 | 0<<11 | 0<<13); //pull-down resistor enabled, hysteresis enabled, input not inverted, open-drain mode disabled, bypass input filter, IOCONCLKDIV0
    DIR0 &= (~(1<<2)); //direction is input
    PINTSEL0 = (2<<0); //PIO0_3 selected for pin interrupt
@@ -29,11 +28,14 @@ int Switch_Pressed(void) {
 void PININT0_IRQHandler(void) {
    CIENR = (1<<0); //disable rising edge interrupt for pin selected in PINTSEL0
    RISE = (1<<0); //clear rising edge detection
+   if(gInterruptCause&(1<<0))
+      gInterruptCause &= (~(1<<0));
+   else
+      gInterruptCause |= (1<<0);
    if(switch_data.active==0) {
       switch_data.active = 1;
       switch_data.delay = 0;
-      switch_data.start = millis;
-      Task_Blocking_Signal(&smphr_switch);
-      Task_Suspend();
+      switch_data.duration = 0;
+      MRT1_Start(1);
    }
 }

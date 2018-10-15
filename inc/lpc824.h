@@ -145,6 +145,14 @@
 #define PINASSIGN11                    (*((volatile uint32_t*)0x4000c02c)) //pin assign register 11
 #define PINENABLE0                     (*((volatile uint32_t*)0x4000c1c0)) //pin enable register
 
+//PMU
+#define PCON                           (*((volatile uint32_t*)0x40020000)) //power control register
+#define GPREG0                         (*((volatile uint32_t*)0x40020004)) //general purpose register 0
+#define GPREG1                         (*((volatile uint32_t*)0x40020008)) //general purpose register 1
+#define GPREG2                         (*((volatile uint32_t*)0x4002000c)) //general purpose register 2
+#define GPREG3                         (*((volatile uint32_t*)0x40020010)) //general purpose register 3
+#define DPDCTRL                        (*((volatile uint32_t*)0x40020014)) //deep power-down control register
+
 //I2C
 struct I2C_Registers {
    volatile uint32_t CFG,              //configuration for shared functions

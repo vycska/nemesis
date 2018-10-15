@@ -1,6 +1,5 @@
 #include "spi.h"
 #include "main.h"
-#include "os.h"
 #include "utils.h"
 #include "lpc824.h"
 

@@ -3,7 +3,6 @@
 
 struct Switch_Data {
    int active,delay,duration;
-   long long int start;
 };
 
 void Switch_Init(void);

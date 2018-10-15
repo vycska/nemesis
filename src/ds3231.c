@@ -1,10 +1,43 @@
 #include "ds3231.h"
 #include "fifos.h"
 #include "i2c.h"
-#include "os.h"
 #include "utils.h"
 #include "lpc824.h"
 #include <time.h>
+
+extern volatile unsigned int gInterruptCause;
+
+void DS3231_Init(void) {
+   unsigned char value;
+   //pin 11. PIO0_15 is INT#
+   PIO0_15 &= (~(0x3<<3 | 0x1<<5 | 0x1<<6 | 0x1<<10 | 0x3<<11 | 0x7<<13)); //no pu/pd, hysteresis disable, input not inverted, disable od mode, bypass input filter, clock divider for input filter sampling clock
+   DIR0 &= (~(0x1<<15)); //pin direction is input
+   PINTSEL1 = 15; //select PIO0_15 for pin interrupt
+   ISEL &= (~(0x1<<1)); //edge sensitive interrupt mode for PINTSEL1
+   IST = (0x1<<1); //clear detected edges
+   CIENR = (0x1<<1); //disable rising edge interrupt
+   SIENF = (0x1<<1); //enable falling edge interrupt
+   IPR6 = (IPR6 & (~(0x3<<14))) | (0x1<<14); //interrupt priority = 1
+   ISER0 = (0x1<<25); //enable PININT1 interrupt
+   DS3231_ReadRegisters(0xf,&value,1);
+   value &= (~(0x1<<0 | 0x1<<1));
+   DS3231_WriteRegister(0xf,value); //write to clear A1F and A2F
+}
+
+void PININT1_IRQHandler(void) {
+   unsigned char value=0;
+   FALL = (0x1<<1); //clear detected falling edge
+   DS3231_ReadRegisters(0xf,&value,1);
+   if(value&(0x1<<0)) {
+      gInterruptCause |= (0x1<<1); //alarm1
+      value &= (~(0x1<<0));
+   }
+   if(value&(0x1<<1)) {
+      gInterruptCause |= (0x1<<2); //alarm2
+      value &= (~(0x1<<1));
+   }
+   DS3231_WriteRegister(0xf,value); //write to clear A1F and A2F
+}
 
 int DS3231_ReadRegisters(unsigned char starting_register,unsigned char *data,int k) {
    unsigned char *pdata[2];

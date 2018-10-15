@@ -11,23 +11,3 @@ void PLL_Init(void) {
    MAINCLKUEN &= (~(1<<0)); //in order for the update to take effect, first write a zero
    MAINCLKUEN |= (1<<0); //update clock source
 }
-
-/*
-int main(void) {
-   int m,p2,d,fin,fcco,fout,clock;
-   while(printf("fin: "),scanf("%d",&fin),printf("clock: "),scanf("%d",&clock),fin!=0 && clock!=0) {
-      for(d=1;(fout=d*clock)<100;d++) {
-         if(fout%fin==0) {
-            m = fout/fin;
-            if(m>=1 && m<=32)
-               for(p2=1;p2<=8;p2*=2) {
-                  fcco = fout * p2;
-                  if(fcco>=156 && fcco<=320)
-                     printf("d: %d, m: %d, p: %d, fin: %d, fcco: %d, fout: %d, clock: %d\n",d,m,p2/2,fin,fcco,fout,clock);
-               }
-         }
-      }
-   }
-   return 0;
-}
-*/

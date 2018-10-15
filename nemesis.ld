@@ -1,6 +1,6 @@
 ENTRY(Reset_Handler)
 
-__stack_size = 512;
+__stack_size = 2048;
 _checksum = -(_stack_end + (Reset_Handler | 1) + (NMI_Handler | 1) + (HardFault_Handler | 1));
 
 MEMORY
@@ -44,12 +44,6 @@ SECTIONS
       _stack_end = .;
    } > ram
 
-   .stacks (NOLOAD) : {
-      _stacks_start = .;
-      *(.stacks)
-      _stacks_end = .;
-   } > ram
-
    .data : {
       _data_start = .;
       *(.data*)
@@ -77,6 +71,5 @@ SECTIONS
    _data_size = SIZEOF (.data);
    _bss_size = SIZEOF (.bss);
    _stack_size = SIZEOF(.stack);
-   _stacks_size = SIZEOF(.stacks);
    _heap_size = SIZEOF(.heap);
 }

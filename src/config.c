@@ -2,20 +2,14 @@
 #include "iap.h"
 #include "led.h"
 #include "output.h"
-#include "task_bme280.h"
 #include "uart.h"
 #include "lpc824.h"
 #include <string.h>
 
-extern volatile struct LED_Data led_data;
 extern struct Output_Data output_data;
-extern volatile struct UART_Data uart_data;
-extern struct Task_BME280_Data task_bme280_data;
 
 struct Config_Data config_data[] = {
-   {(char*)&led_data.enabled,          (short)sizeof(led_data.enabled)},
    {(char*)output_data.mask,           (short)sizeof(output_data.mask)},
-   {(char*)&uart_data.uart_in_enabled, (short)sizeof(uart_data.uart_in_enabled)},
 };
 
 int config_load(void) {

@@ -5,9 +5,10 @@ enum eOutputSubsystem {
    eOutputSubsystemADC        = 0,
    eOutputSubsystemBME280     = 1,
    eOutputSubsystemDS18B20    = 2,
-   eOutputSubsystemSystem     = 3,
-   eOutputSubsystemSwitch     = 4,
-   eOutputSubsystemLast       = 5
+   eOutputSubsystemDS3231     = 3,
+   eOutputSubsystemSystem     = 4,
+   eOutputSubsystemSwitch     = 5,
+   eOutputSubsystemLast       = 6
 };
 
 enum eOutputLevel {
@@ -21,6 +22,6 @@ struct Output_Data {
    unsigned char mask[eOutputSubsystemLast];
 };
 
-void output(char*, enum eOutputSubsystem, enum eOutputLevel, int);
+void output(char*, enum eOutputSubsystem, enum eOutputLevel);
 
 #endif

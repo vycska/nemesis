@@ -1,7 +1,6 @@
 #include "bme280.h"
 #include "fifos.h"
 #include "i2c.h"
-#include "os.h"
 #include "utils.h"
 #include "lpc824.h"
 
