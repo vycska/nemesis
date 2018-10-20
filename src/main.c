@@ -7,7 +7,9 @@
 #include "fifos.h"
 #include "file_system.h"
 #include "handle_command.h"
+#include "handle_log.h"
 #include "handle_measurements.h"
+#include "handle_xmodem.h"
 #include "i2c.h"
 #include "iap.h"
 #include "led.h"
@@ -20,13 +22,18 @@
 #include "utils.h"
 #include "utils-asm.h"
 #include "lpc824.h"
+#include "pt.h"
 
 extern char _data_start_lma, _data_start, _data_end, _bss_start, _bss_end;
 extern char _flash_start, _flash_end, _ram_start, _ram_end;
 extern char _intvecs_size, _text_size, _rodata_size, _data_size, _bss_size, _stack_size, _heap_size;
 
+extern struct pt pt_xmodem_sending,
+                 pt_xmodem_receiving;
+extern struct UART_Data uart_data;
 extern volatile struct Switch_Data switch_data;
 
+unsigned int start_time;
 volatile unsigned int gInterruptCause = 0;
 
 void main(void) {
@@ -67,7 +74,7 @@ void main(void) {
    BME280_Init();
    if(BME280_GetID(data)==1) {
       mysprintf(buf,"BME280 id: %x",(unsigned int)data[0]);
-      output(buf, eOutputSubsystemBME280, eOutputLevelDebug);
+      output(buf, eOutputSubsystemBME280, eOutputLevelNormal);
    }
 
    fs_mount();
@@ -77,6 +84,9 @@ void main(void) {
    }
 
    Fifo_Command_Parser_Init();
+   Fifo_Xmodem_Sending_Init();
+   PT_INIT(&pt_xmodem_sending);
+   PT_INIT(&pt_xmodem_receiving);
 
    for(i=0; i<=15; i++) {
       switch(i) {
@@ -135,21 +145,46 @@ void main(void) {
    while(1) {
       cause = gInterruptCause; //atomic interrupt safe read
       while(cause) {
-         if(cause & (1<<0)) {
+         if(cause & (1<<0)) { //button pressed and no deep-sleep mode active
             if(Fifo_Command_Parser_Get(&command))
                Handle_Command(command);
          }
-         if(cause & (1<<1)) {
+         if(cause & (1<<1)) { //alarm1
+            DisableInterrupts();
             gInterruptCause &= (~(0x1<<1));
+            EnableInterrupts();
             Handle_Measurements();
+            Handle_Log();
          }
-         if(cause & (1<<2)) {
+         if(cause & (1<<2)) { //alarm2
+            DisableInterrupts();
             gInterruptCause &= (~(0x1<<2));
+            EnableInterrupts();
          }
-         if(cause & (1<<3)) {
+         if(cause & (1<<3)) { //button released
+            DisableInterrupts();
             gInterruptCause &= (~(0x1<<3));
+            EnableInterrupts();
             mysprintf(buf, "switch %d",switch_data.duration);
             output(buf, eOutputSubsystemSwitch, eOutputLevelDebug);
+         }
+         if(cause & (1<<4)) { //xmodem sending file
+            if(PT_SCHEDULE(Handle_Xmodem_Sending(&pt_xmodem_sending))==0) {
+               uart_data.i = 0;
+               uart_data.mode = 0;
+               DisableInterrupts();
+               gInterruptCause &= (~(0x1<<4));
+               EnableInterrupts();
+            }
+         }
+         if(cause & (1<<5)) { //xmodem receiving file
+            if(PT_SCHEDULE(Handle_Xmodem_Receiving(&pt_xmodem_receiving))==0) {
+               uart_data.i = 0;
+               uart_data.mode = 0;
+               DisableInterrupts();
+               gInterruptCause &= (~(0x1<<5));
+               EnableInterrupts();
+            }
          }
          cause = gInterruptCause;
       }

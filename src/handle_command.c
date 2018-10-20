@@ -6,24 +6,32 @@
 #include "ds3231.h"
 #include "file_system.h"
 #include "handle_measurements.h"
+#include "handle_xmodem.h"
 #include "i2c.h"
 #include "iap.h"
 #include "main.h"
 #include "output.h"
+#include "uart.h"
 #include "utils.h"
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
 extern char _flash_start, _flash_end, _ram_start, _ram_end;
+extern volatile unsigned int gInterruptCause;
 extern struct BME280_Data bme280_data;
 extern struct Handle_Measurements_Data handle_measurements_data;
+extern struct Handle_Xmodem_Data handle_xmodem_data;
 extern struct Output_Data output_data;
+extern struct UART_Data uart_data;
 
 void Handle_Command(char *pString) {
    char buf[128];
    int i, j, l;
    unsigned int t,params[12] = {0};
+
+   mysprintf(buf, "<< %s >>", pString);
+   output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
 
    params_fill(pString, params);
    switch(crc16((unsigned char *)params[1], strlen((char *)params[1]))) {
@@ -241,19 +249,11 @@ void Handle_Command(char *pString) {
             DS3231_DisableAlarm(params[2]);
          }
          break;
-      case 0x67bf: //t [temperature]
-         if(params_count(params)==1) { //cia tikrinu siaip, del kintamojo t deklaravimo
-            double t;
-            t = DS3231_GetTemperature()/100.0;
-            mysprintf(buf, "ds3231 t: %f2 C", (char *)&t);
-            output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
-         }
-         break;
       case 0xa93e: //b [battery]
          if(params_count(params)==1) {
-            double v;
-            v = handle_measurements_data.adc_battery/4095.0*3.3 * 2;
-            mysprintf(buf, "%f2 V",(char*)&v);
+            float v;
+            v = handle_measurements_data.adc_battery/4095.0f*3.3f * 2;
+            mysprintf(buf, "%f2 V", (char*)&v);
             output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
          }
          break;
@@ -384,9 +384,9 @@ void Handle_Command(char *pString) {
          }
          break;
       case 0xc595: //fs_info
-         mysprintf(buf, "FS_TOTAL_SIZE: %u [%u - %u]", FS_TOTAL_SIZE, FS_START_ADDRESS, FS_END_ADDRESS);
+         mysprintf(buf, "FS_TOTAL_SIZE: %u B [%u - %u] ~%u KiB", FS_TOTAL_SIZE, FS_START_ADDRESS, FS_END_ADDRESS, (unsigned int)(FS_TOTAL_SIZE/1024));
          output(buf, eOutputSubsystemSystem,eOutputLevelImportant);
-         mysprintf(buf, "SECTORS: %u, SECTOR_SIZE: %u", SECTORS, SECTOR_SIZE);
+         mysprintf(buf, "free sectors: %d, SECTORS: %u, SECTOR_SIZE: %u", fs_freesectors(), SECTORS, SECTOR_SIZE);
          output(buf, eOutputSubsystemSystem,eOutputLevelImportant);
          mysprintf(buf, "sizeof(DirectoryEntry): %u, sizeof(FS): %u",sizeof(struct DirectoryEntry), sizeof(struct FS));
          output(buf, eOutputSubsystemSystem,eOutputLevelImportant);
@@ -395,12 +395,34 @@ void Handle_Command(char *pString) {
          for(i=0; i<DIRECTORY_ENTRIES; i++) {
             l = mysprintf(buf, "[%d]: ",i);
             if(!fs_direntryempty(i))
-               l += mysprintf(buf+l, "%s %d %d %d %d", fs_filename(i), fs_filesize(i), fs_filedatasize(i),fs_filerecordsize(i), fs_filerecordsize(i));
+               l += mysprintf(buf+l, "%s %d %d %d", fs_filename(i), fs_filesize(i), fs_filedatasize(i), fs_filerecordsize(i));
             output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
+         }
+         break;
+      case 0x2ecf: //fs_delete
+         if(params_count(params)==2) {
+            fs_filedelete(params[2]);
          }
          break;
       case 0x3da8: //fs_flush
          fs_flush();
+         break;
+      case 0xfe9e: //xmodem_sending_file
+         if(params_count(params)==2 && params[2]>=0 && params[2]<DIRECTORY_ENTRIES)
+            handle_xmodem_data.sending_file = params[2];
+         else {
+            mysprintf(buf, "%d", handle_xmodem_data.sending_file);
+            output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
+         }
+         break;
+      case 0x64ec: //xmodem_receiving_file
+         if(params_count(params)==2 && params_integer(2, params)==0) {
+            strcpy(handle_xmodem_data.receiving_file, (char*)params[2]);
+            gInterruptCause |= (0x1<<5);
+            handle_xmodem_data.receiving_ready = 0;
+            uart_data.i = 0;
+            uart_data.mode = 2;
+         }
          break;
       default:
          output("Unknown command", eOutputSubsystemSystem, eOutputLevelImportant);

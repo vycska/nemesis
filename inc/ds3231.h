@@ -10,6 +10,7 @@ int DS3231_ReadRegisters(unsigned char starting_register,unsigned char *data,int
 int DS3231_WriteRegister(unsigned char reg,unsigned char value);
 int DS3231_GetTemperature(void);
 int DS3231_GetDate(struct tm *dt);
+unsigned int DS3231_GetUnixTime(void);
 int DS3231_SetDate(struct tm *dt);
 int DS3231_SetAlarm1(int day,int dow, int hour, int min, int sec);
 int DS3231_SetAlarm2(int day,int dow, int hour, int min);

@@ -48,6 +48,6 @@ int DS18B20_ReadScratchpad(unsigned char *m, unsigned char *d) { //m yra NULL ar
    return onewire_crc8(d, 8) == d[8] ? DS18B20_OK : DS18B20_ERROR;
 }
 
-double DS18B20_GetTemperature(unsigned char *d) {
+float DS18B20_GetTemperature(unsigned char *d) {
    return (*(short *)d) / 16.0; //pirmi du baitai yra temperatura
 }

@@ -259,7 +259,7 @@ void fs_fileappend(int file, char *buf, int len) {
    } while(len > 0);
 }
 
-int fs_fileread_seq(int file, char *buf, int len) {
+int fs_fileread_seq(int file, unsigned char *buf, int len) {
    static int current_file = -1, state, size_returned;
    int sector, size, l = 0, r = 0;
 

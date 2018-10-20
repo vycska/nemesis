@@ -72,7 +72,7 @@ char *fs_filename(int file);
 char *fs_fileheader(int file);
 void fs_fileheaderset(int file, char *header, int len);
 void fs_fileappend(int file, char *buf, int len);
-int fs_fileread_seq(int file, char *buf, int len);
+int fs_fileread_seq(int file, unsigned char *buf, int len);
 void fs_fileread_datapart(int file, int adr, int len, unsigned char *buf);
 
 #endif

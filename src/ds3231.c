@@ -83,6 +83,12 @@ int DS3231_GetDate(struct tm *dt) {
    return ok;
 }
 
+unsigned int DS3231_GetUnixTime(void) {
+   struct tm dt;
+   DS3231_GetDate(&dt);
+   return mktime(&dt);
+}
+
 int DS3231_SetDate(struct tm *dt) {
    int ok;
    ok = DS3231_WriteRegister(0x0, (((dt->tm_sec/10)&0x7)<<4) | ((dt->tm_sec%10)&0xf));

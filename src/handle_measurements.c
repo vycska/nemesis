@@ -16,7 +16,6 @@ struct Handle_Measurements_Data handle_measurements_data;
 void Handle_Measurements(void) {
    char buf[32];
    unsigned char data[9];
-   struct tm dt;
 
    //adc
    ADCSEQA_CTRL |= (1<<26); //start conversion on adc sequence A
@@ -29,15 +28,15 @@ void Handle_Measurements(void) {
    BME280_StartForcedMeasurement();
    MRT0_Delay((1.25 + 2.3 * power(2, bme280_data.osrs_t-1) + 2.3 * power(2, bme280_data.osrs_p-1) + 0.575 + 2.3 * power(2, bme280_data.osrs_h-1) + 0.575)*1000);
    if(BME280_ReadData()==1) {
-      handle_measurements_data.bme280_humidity = bme280_data.ch/1024.0;
-      handle_measurements_data.bme280_pressure = bme280_data.cp/256.0 * 0.0075006; //1 atm [standard atmosphere] = 760 torr = 101325 Pa = 1.01325 bar; 1 mmHg = 133.322387415 Pa --> 1 Pa = 0.0075006 mmHg
-      handle_measurements_data.bme280_temperature = bme280_data.ct/100.0;
+      handle_measurements_data.bme280_humidity = bme280_data.ch/1024.0f;
+      handle_measurements_data.bme280_pressure = bme280_data.cp/256.0f * 0.0075006f; //1 atm [standard atmosphere] = 760 torr = 101325 Pa = 1.01325 bar; 1 mmHg = 133.322387415 Pa --> 1 Pa = 0.0075006 mmHg
+      handle_measurements_data.bme280_temperature = bme280_data.ct/100.0f;
 
-      mysprintf(buf, "bme280 h: %f2 %%", (char *)&handle_measurements_data.bme280_humidity);
+      mysprintf(buf, "bme280 h: %f2 %%", (char*)&handle_measurements_data.bme280_humidity);
       output(buf, eOutputSubsystemBME280, eOutputLevelDebug);
-      mysprintf(buf, "bme280 p: %f2 mmHg", (char *)&handle_measurements_data.bme280_pressure);
+      mysprintf(buf, "bme280 p: %f2 mmHg", (char*)&handle_measurements_data.bme280_pressure);
       output(buf, eOutputSubsystemBME280, eOutputLevelDebug);
-      mysprintf(buf, "bme280 t: %f2 C", (char *)&handle_measurements_data.bme280_temperature);
+      mysprintf(buf, "bme280 t: %f2 C", (char*)&handle_measurements_data.bme280_temperature);
       output(buf, eOutputSubsystemBME280, eOutputLevelDebug);
    }
    else {
@@ -57,11 +56,10 @@ void Handle_Measurements(void) {
    }
 
    //rtc DS3231 date and temperature
-   DS3231_GetDate(&dt);
-   handle_measurements_data.date = mktime(&dt);
+   handle_measurements_data.date = DS3231_GetUnixTime();
    mysprintf(buf, "ds3231 date: %u",handle_measurements_data.date);
    output(buf, eOutputSubsystemDS3231, eOutputLevelDebug);
-   handle_measurements_data.ds3231_temperature = DS3231_GetTemperature()/100.0;
+   handle_measurements_data.ds3231_temperature = DS3231_GetTemperature()/100.0f;
    mysprintf(buf, "ds3231 t: %f2 C",(char*)&handle_measurements_data.ds3231_temperature);
    output(buf, eOutputSubsystemDS3231, eOutputLevelDebug);
 }
