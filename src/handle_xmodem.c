@@ -7,10 +7,8 @@
 #include "pt.h"
 #include "timer.h"
 
-struct pt pt_xmodem_sending,
-          pt_xmodem_receiving;
-static struct timer timer_xmodem_sending,
-                    timer_xmodem_receiving;
+struct pt pt_xmodem_sending, pt_xmodem_receiving;
+static struct timer timer_xmodem;
 struct Handle_Xmodem_Data handle_xmodem_data;
 
 PT_THREAD(Handle_Xmodem_Sending(struct pt *pt)) {
@@ -43,8 +41,8 @@ PT_THREAD(Handle_Xmodem_Sending(struct pt *pt)) {
          }
          for(received_data=0,retry=0; retry<10 && received_data!=ACK && received_data!=CAN; retry++) {
             UART_Transmit((char*)packet,file_read==file_size?1:132,0);
-            timer_set(&timer_xmodem_sending, 3+retry);
-            PT_WAIT_UNTIL(&pt_xmodem_sending, Fifo_Xmodem_Sending_Get(&received_data)==1 || timer_expired(&timer_xmodem_sending));
+            timer_set(&timer_xmodem, 3+retry);
+            PT_WAIT_UNTIL(&pt_xmodem_sending, Fifo_Xmodem_Sending_Get(&received_data)==1 || timer_expired(&timer_xmodem));
          }
          if(retry==10 || received_data==CAN || Fifo_Xmodem_Sending_Get(&received_data)!=0) error = 1;
       }
@@ -62,7 +60,6 @@ PT_THREAD(Handle_Xmodem_Receiving(struct pt *pt)) {
               retry,
               file;
    PT_BEGIN(pt);
-   
    file = fs_filenew(handle_xmodem_data.receiving_file, 0, 1);
    for(block=0,state=0; state<2; block = (block+1)&0xff) {
       //sitoj vietoje as tikrai turiu, kad gautas paketas [arba state==0]
@@ -79,40 +76,41 @@ PT_THREAD(Handle_Xmodem_Receiving(struct pt *pt)) {
          state = (handle_xmodem_data.receiving_data[0]==EOT ? 2 : 4);
       //state = 0 : startas, state = 1 : gautas blokas ir viskas ok, issiunciamas ACK; state = 2 : gautas EOT, issiunciamas ACK ir baigiama; state = 3 : kazkas negerai ir baigiu issiusdamas CAN; state = 4 : tiesiog baigiama
       if(file == STATUS_ERROR) state=3;
-      if(state==0) {
-         packet[0] = NAK;
-         packet_size = 1;
-         retry = 10;
-         state = 1;
-      }
-      else if(state==1) {
-         packet[0] = ACK;
-         packet_size = 1;
-         retry = 10;
-      }
-      else if(state==2) {
-         packet[0] = ACK;
-         packet_size = 1;
-         retry = 1;
-      }
-      else if(state==3) {
-         packet[0] = packet[1] = CAN;
-         packet_size = 2;
-         retry = 1;
-      }
-      else if(state==4) {
-         retry = 0;
+      switch(state) {
+         case 0:
+            packet[0] = NAK;
+            packet_size = 1;
+            retry = 10;
+            state = 1;
+            break;
+         case 1:
+            packet[0] = ACK;
+            packet_size = 1;
+            retry = 10;
+            break;
+         case 2:
+            packet[0] = ACK;
+            packet_size = 1;
+            retry = 1;
+            break;
+         case 3:
+            packet[0] = packet[1] = CAN;
+            packet_size = 2;
+            retry = 1;
+            break;
+         case 4:
+            retry = 0;
+            break;
       }
       for(handle_xmodem_data.receiving_ready=0; retry>0 && handle_xmodem_data.receiving_ready==0; retry--) {
          UART_Transmit((char*)packet, packet_size, 0);
-         timer_set(&timer_xmodem_receiving, 10);
+         timer_set(&timer_xmodem, 10);
          if(state<2)
-            PT_WAIT_UNTIL(&pt_xmodem_receiving, handle_xmodem_data.receiving_ready==1 || timer_expired(&timer_xmodem_receiving));
+            PT_WAIT_UNTIL(&pt_xmodem_receiving, handle_xmodem_data.receiving_ready==1 || timer_expired(&timer_xmodem));
       }
       if(retry==0 && state!=2) state = 4;
    }
    if(state != 2) fs_filedelete(file);
    fs_flush();
-
    PT_END(pt);
 }

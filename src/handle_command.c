@@ -18,6 +18,7 @@
 #include <string.h>
 
 extern char _flash_start, _flash_end, _ram_start, _ram_end;
+extern unsigned int startup_time;
 extern volatile unsigned int gInterruptCause;
 extern struct BME280_Data bme280_data;
 extern struct Handle_Measurements_Data handle_measurements_data;
@@ -39,6 +40,9 @@ void Handle_Command(char *pString) {
          SystemReset();
          break;
       case 0xd89c: //live_time
+         t = DS3231_GetUnixTime()-startup_time;
+         mysprintf(buf, "%d, %d:%d:%d", t/86400u, t/3600%24, t/60%60, t%60);
+         output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
          break;
       case 0x426e: //config_save
          config_save();
@@ -53,13 +57,27 @@ void Handle_Command(char *pString) {
             }
          }
          break;
+      case 0x696c: //oc [output channel]
+         if(params_count(params)==1) {
+            mysprintf(buf, "channel_mask: %d", output_data.channel_mask);
+            output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
+            mysprintf(buf, "UART: %d", (int)eOutputChannelUART);
+            output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
+            mysprintf(buf, "file: %d", (int)eOutputChannelFile);
+            output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
+
+         }
+         else if(params_count(params)==2 && params[2]<=((1<<eOutputChannelLast)-1)) {
+            output_data.channel_mask = params[2];
+         }
+         break;
       case 0xaded: //om [output mask]
          if(params_count(params)==2) {
             for(i=0; i<(int)eOutputSubsystemLast; i++)
-               output_data.mask[i] = params[2];
+               output_data.subsystem_mask[i] = params[2];
          }
          else if(params_count(params)==3 && params[2]<eOutputSubsystemLast) {
-            output_data.mask[params[2]] = params[3];
+            output_data.subsystem_mask[params[2]] = params[3];
          }
          else {
             mysprintf(buf,"ADC %d",(int)eOutputSubsystemADC);
@@ -74,8 +92,6 @@ void Handle_Command(char *pString) {
             output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
             mysprintf(buf,"Switch %d",(int)eOutputSubsystemSwitch);
             output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
-            mysprintf(buf,"None %d",(int)eOutputLevelNone);
-            output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
             mysprintf(buf,"Debug %d",(int)eOutputLevelDebug);
             output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
             mysprintf(buf,"Normal %d",(int)eOutputLevelNormal);
@@ -83,7 +99,7 @@ void Handle_Command(char *pString) {
             mysprintf(buf,"Important %d",(int)eOutputLevelImportant);
             output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
             for(i=0; i<(int)eOutputSubsystemLast; i++) {
-               mysprintf(buf, "[%d] %u",i,(unsigned int)output_data.mask[i]);
+               mysprintf(buf, "[%d] %u",i,(unsigned int)output_data.subsystem_mask[i]);
                output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
             }
          }
@@ -249,6 +265,22 @@ void Handle_Command(char *pString) {
             DS3231_DisableAlarm(params[2]);
          }
          break;
+      case 0xad7e: //m [measurements]
+         mysprintf(buf, "time: %u", handle_measurements_data.date);
+         output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
+         mysprintf(buf, "adc battery: %u", handle_measurements_data.adc_battery);
+         output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
+         mysprintf(buf, "ds18b20 temp: %f2 C", (char*)&handle_measurements_data.ds18b20_temperature);
+         output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
+         mysprintf(buf, "bme280 temp: %f2 C", (char*)&handle_measurements_data.bme280_temperature);
+         output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
+         mysprintf(buf, "bme280 hum: %f1 %%", (char*)&handle_measurements_data.bme280_humidity);
+         output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
+         mysprintf(buf, "bme280 pres: %f1 mmHg", (char*)&handle_measurements_data.bme280_pressure);
+         output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
+         mysprintf(buf, "ds3231 temp: %f2 C", (char*)&handle_measurements_data.ds3231_temperature);
+         output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
+         break;
       case 0xa93e: //b [battery]
          if(params_count(params)==1) {
             float v;
@@ -283,6 +315,21 @@ void Handle_Command(char *pString) {
          }
          else {
             output("Incorrect syntax", eOutputSubsystemSystem, eOutputLevelImportant);
+         }
+         break;
+      case 0x1417: //eprom_writefile
+         if(params_count(params)==2 && !params_integer(2, params)) {
+            unsigned char data[32];
+            int file;
+            unsigned int addr;
+            file = fs_filenew((char*)params[2], 0, 1);
+            if(file != STATUS_ERROR) {
+               for(addr=0; addr<AT24C32_SIZE; addr += 32) {
+                  AT24C32_read(addr, data, 32);
+                  fs_fileappend(file, (char*)data, 32);
+               }
+               fs_flush();
+            }
          }
          break;
       case 0x6ca6: //i2c0_test [i2c0 test slave]
@@ -384,7 +431,7 @@ void Handle_Command(char *pString) {
          }
          break;
       case 0xc595: //fs_info
-         mysprintf(buf, "FS_TOTAL_SIZE: %u B [%u - %u] ~%u KiB", FS_TOTAL_SIZE, FS_START_ADDRESS, FS_END_ADDRESS, (unsigned int)(FS_TOTAL_SIZE/1024));
+         mysprintf(buf, "FS_TOTAL_SIZE: %u B [~%u KiB; %u - %u]", FS_TOTAL_SIZE, (unsigned int)(FS_TOTAL_SIZE/1024), FS_START_ADDRESS, FS_END_ADDRESS);
          output(buf, eOutputSubsystemSystem,eOutputLevelImportant);
          mysprintf(buf, "free sectors: %d, SECTORS: %u, SECTOR_SIZE: %u", fs_freesectors(), SECTORS, SECTOR_SIZE);
          output(buf, eOutputSubsystemSystem,eOutputLevelImportant);
@@ -402,6 +449,7 @@ void Handle_Command(char *pString) {
       case 0x2ecf: //fs_delete
          if(params_count(params)==2) {
             fs_filedelete(params[2]);
+            fs_flush();
          }
          break;
       case 0x3da8: //fs_flush

@@ -19,11 +19,6 @@ void Handle_Log(void) {
    if(log_config.log_file != STATUS_ERROR && log_config.count_records >= COUNT_RECORDS) {
       fs_fileappend(log_config.log_file, (char*)&log_records, COUNT_RECORDS*sizeof(struct Log_Record));
       log_config.count_records = 0;
-      log_config.count_flush += 1;
-      if(log_config.count_flush >= COUNT_FLUSH) {
-         fs_flush();
-         log_config.count_flush = 0;
-      }
    }
 }
 

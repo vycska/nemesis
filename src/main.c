@@ -1,5 +1,6 @@
 #include "main.h"
 #include "adc.h"
+#include "at24c32.h"
 #include "bme280.h"
 #include "config.h"
 #include "ds18b20.h"
@@ -23,27 +24,26 @@
 #include "utils-asm.h"
 #include "lpc824.h"
 #include "pt.h"
+#include "timer.h"
 
 extern char _data_start_lma, _data_start, _data_end, _bss_start, _bss_end;
 extern char _flash_start, _flash_end, _ram_start, _ram_end;
 extern char _intvecs_size, _text_size, _rodata_size, _data_size, _bss_size, _stack_size, _heap_size;
 
-extern struct pt pt_xmodem_sending,
-                 pt_xmodem_receiving;
+extern struct pt pt_xmodem_sending, pt_xmodem_receiving;
 extern struct UART_Data uart_data;
 extern volatile struct Switch_Data switch_data;
 
-unsigned int start_time;
+unsigned int startup_time;
 volatile unsigned int gInterruptCause = 0;
 
 void main(void) {
-   char *command,
-        buf[64];
+   char *command, buf[64];
    unsigned char data[8];
    int i, l, t;
+   unsigned short count_startups;
    unsigned int cause;
-
-   t = config_load();
+   struct timer timer_flush;
 
    PDRUNCFG &= (~(1<<0 | 1<<1 | 1<<2 | 1<<4 | 1<<7)); //IRC output, IRC, flash, ADC, PLL powered
    SYSAHBCLKCTRL |= (1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7 | 1<<10 | 1<<11 | 1<<14 | 1<<18 | 1<<24); //enable clock for ROM, RAM0_1, FLASHREG, FLASH, I2C0, GPIO, SWM, MRT, SPI0, USART0, IOCON, ADC
@@ -53,29 +53,29 @@ void main(void) {
    ADC_Init();
    I2C0_Init();
    LED_Init(1);
+   MRT_Init();
    SPI0_Init();
+   Switch_Init();
    UART_Init();
 
-   MRT_Init();
+   MRT0_Delay(2*1000);
 
-   DS3231_Init();
-   Switch_Init();
-
-   //DS18B20
-   DS18B20_Init();
-   if(DS18B20_ReadROM(data) == DS18B20_OK) {
-      l = mysprintf(buf, "one-wire device: ");
-      for(i = 0; i < 8; i++)
-         l += mysprintf(&buf[l], "0x%x%s", (unsigned int)data[i], i == 7 ? "." : " ");
-      output(buf, eOutputSubsystemDS18B20, eOutputLevelNormal);
-   }
-
-   //BME280 [2ms max time until communication]
    BME280_Init();
-   if(BME280_GetID(data)==1) {
-      mysprintf(buf,"BME280 id: %x",(unsigned int)data[0]);
-      output(buf, eOutputSubsystemBME280, eOutputLevelNormal);
+   DS18B20_Init();
+   DS3231_Init();
+
+   startup_time = DS3231_GetUnixTime();
+   AT24C32_read(0x0, data, 2);
+   count_startups = *((unsigned short*)data);
+   if(sizeof(unsigned short) + sizeof(unsigned int)*count_startups < AT24C32_SIZE) {
+      AT24C32_write(sizeof(unsigned short)+sizeof(unsigned int)*count_startups, (unsigned char*)&startup_time, sizeof(unsigned int));
+      count_startups += 1;
+      AT24C32_write(0x0, (unsigned char*)&count_startups, sizeof(unsigned short));
    }
+
+   timer_set(&timer_flush, 3600); //1 hour
+
+   t = config_load();
 
    fs_mount();
    if(fs_checkdisk()==STATUS_ERROR) {
@@ -88,63 +88,79 @@ void main(void) {
    PT_INIT(&pt_xmodem_sending);
    PT_INIT(&pt_xmodem_receiving);
 
-   for(i=0; i<=15; i++) {
+   for(i=0; i<=16; i++) {
       switch(i) {
          case 0:
-            mysprintf(buf,"VERSION: %d",VERSION);
+            mysprintf(buf, "startup time: %u", startup_time);
             break;
          case 1:
-            mysprintf(buf,"%s %s",__DATE__,__TIME__);
+            mysprintf(buf,"build time: %s %s",__DATE__,__TIME__);
             break;
          case 2:
-            mysprintf(buf,"%s",t?"config_load error":"config_load ok");
+            mysprintf(buf,"VERSION: %d",VERSION);
             break;
          case 3:
-            mysprintf(buf, "_flash_start: %x [%u]", (unsigned int)&_flash_start,(unsigned int)&_flash_start);
+            mysprintf(buf,"%s",t?"config_load error":"config_load ok");
             break;
          case 4:
-            mysprintf(buf, "_flash_end: %x [%u]", (unsigned int)&_flash_end,(unsigned int)&_flash_end);
+            mysprintf(buf, "_flash_start: %x [%u]", (unsigned int)&_flash_start,(unsigned int)&_flash_start);
             break;
          case 5:
-            mysprintf(buf, "_ram_start: %x [%u]", (unsigned int)&_ram_start,(unsigned int)&_ram_start);
+            mysprintf(buf, "_flash_end: %x [%u]", (unsigned int)&_flash_end,(unsigned int)&_flash_end);
             break;
          case 6:
-            mysprintf(buf, "_ram_end: %x [%u]", (unsigned int)&_ram_end,(unsigned int)&_ram_end);
+            mysprintf(buf, "_ram_start: %x [%u]", (unsigned int)&_ram_start,(unsigned int)&_ram_start);
             break;
          case 7:
-            mysprintf(buf, "_intvecs_size: %u", (unsigned int)&_intvecs_size);
+            mysprintf(buf, "_ram_end: %x [%u]", (unsigned int)&_ram_end,(unsigned int)&_ram_end);
             break;
          case 8:
-            mysprintf(buf, "_text_size: %u", (unsigned int)&_text_size);
+            mysprintf(buf, "_intvecs_size: %u", (unsigned int)&_intvecs_size);
             break;
          case 9:
-            mysprintf(buf, "_rodata_size: %u", (unsigned int)&_rodata_size);
+            mysprintf(buf, "_text_size: %u", (unsigned int)&_text_size);
             break;
          case 10:
-            mysprintf(buf, "_data_size: %u", (unsigned int)&_data_size);
+            mysprintf(buf, "_rodata_size: %u", (unsigned int)&_rodata_size);
             break;
          case 11:
-            mysprintf(buf, "_bss_size: %u", (unsigned int)&_bss_size);
+            mysprintf(buf, "_data_size: %u", (unsigned int)&_data_size);
             break;
          case 12:
-            mysprintf(buf, "_stack_size: %u", (unsigned int)&_stack_size);
+            mysprintf(buf, "_bss_size: %u", (unsigned int)&_bss_size);
             break;
          case 13:
-            mysprintf(buf, "_heap_size: %u", (unsigned int)&_heap_size);
+            mysprintf(buf, "_stack_size: %u", (unsigned int)&_stack_size);
             break;
          case 14:
-            mysprintf(buf, "flash used: %u",(unsigned int)&_intvecs_size+(unsigned int)&_text_size+(unsigned int)&_rodata_size+(unsigned int)&_data_size);
+            mysprintf(buf, "_heap_size: %u", (unsigned int)&_heap_size);
             break;
          case 15:
+            mysprintf(buf, "flash used: %u",(unsigned int)&_intvecs_size+(unsigned int)&_text_size+(unsigned int)&_rodata_size+(unsigned int)&_data_size);
+            break;
+         case 16:
             mysprintf(buf, "ram used: %u",(unsigned int)&_data_size+(unsigned int)&_bss_size+(unsigned int)&_stack_size+(unsigned int)&_heap_size);
             break;
       }
       output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
    }
 
+   //DS18B20
+   if(DS18B20_ReadROM(data) == DS18B20_OK) {
+      l = mysprintf(buf, "one-wire device: ");
+      for(i = 0; i < 8; i++)
+         l += mysprintf(&buf[l], "0x%x%s", (unsigned int)data[i], i == 7 ? " " : "-");
+      output(buf, eOutputSubsystemDS18B20, eOutputLevelNormal);
+   }
+
+   //BME280 [2ms max time until communication]
+   if(BME280_GetID(data)==1) {
+      mysprintf(buf,"BME280 id: %x",(unsigned int)data[0]);
+      output(buf, eOutputSubsystemBME280, eOutputLevelNormal);
+   }
+
    while(1) {
-      cause = gInterruptCause; //atomic interrupt safe read
-      while(cause) {
+      while((cause=gInterruptCause)!=0) { //atomic interrupt safe read
          if(cause & (1<<0)) { //button pressed and no deep-sleep mode active
             if(Fifo_Command_Parser_Get(&command))
                Handle_Command(command);
@@ -186,7 +202,11 @@ void main(void) {
                EnableInterrupts();
             }
          }
-         cause = gInterruptCause;
+      }
+      if(timer_expired(&timer_flush)) {
+         output("periodic fs_flush)", eOutputSubsystemSystem, eOutputLevelDebug);
+         fs_flush();
+         timer_restart(&timer_flush);
       }
       DisableInterrupts();
       if(gInterruptCause == 0 && !switch_data.active) {

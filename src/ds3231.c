@@ -84,9 +84,10 @@ int DS3231_GetDate(struct tm *dt) {
 }
 
 unsigned int DS3231_GetUnixTime(void) {
+   static int mdays[12] = {0,31,59,90,120,151,181,212,243,273,304,334};
    struct tm dt;
    DS3231_GetDate(&dt);
-   return mktime(&dt);
+   return ((dt.tm_year+1900-1970)*365 + ((dt.tm_year+1900-1-1968)>>2) + mdays[dt.tm_mon+1-1] + (dt.tm_mday-1))*86400 + dt.tm_hour*3600 + dt.tm_min*60 + dt.tm_sec;
 }
 
 int DS3231_SetDate(struct tm *dt) {

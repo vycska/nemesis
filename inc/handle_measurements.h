@@ -5,8 +5,8 @@ struct Handle_Measurements_Data {
    unsigned int adc_battery,
                 date;
    float ds18b20_temperature,
-          bme280_humidity,bme280_pressure,bme280_temperature,
-          ds3231_temperature;
+         bme280_humidity,bme280_pressure,bme280_temperature,
+         ds3231_temperature;
 };
 
 void Handle_Measurements(void);

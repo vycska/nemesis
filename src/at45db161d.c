@@ -110,6 +110,7 @@ void AT45DB161D_read(unsigned int addr,unsigned char *buf,int l) {
    unsigned char out[4];
    out[0] = 0x03; //continuous array read (low frequency mode)
    AT45DB161D_make_address(out+1,(addr/FLASH_PAGE_SIZE) & 0xfff,addr%FLASH_PAGE_SIZE);
+   while(AT45DB161D_read_status().b.ready==0);
    SPI0_Transaction(out,4,1,buf,l,5);
 }
 

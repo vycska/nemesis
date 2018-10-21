@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2004-2005, Swedish Institute of Computer Science.
  * All rights reserved.
@@ -30,7 +31,7 @@
  *
  * Author: Adam Dunkels <adam@sics.se>
  *
- * $Id: lc-switch.h,v 1.4 2006/06/03 11:29:43 adam Exp $
+ * $Id: lc-addrlabels.h,v 1.4 2006/06/03 11:29:43 adam Exp $
  */
 
 /**
@@ -40,37 +41,47 @@
 
 /**
  * \file
- * Implementation of local continuations based on switch() statment
- * \author Adam Dunkels <adam@sics.se>
+ * Implementation of local continuations based on the "Labels as
+ * values" feature of gcc
+ * \author
+ * Adam Dunkels <adam@sics.se>
  *
- * This implementation of local continuations uses the C switch()
- * statement to resume execution of a function somewhere inside the
- * function's body. The implementation is based on the fact that
- * switch() statements are able to jump directly into the bodies of
- * control structures such as if() or while() statmenets.
+ * This implementation of local continuations is based on a special
+ * feature of the GCC C compiler called "labels as values". This
+ * feature allows assigning pointers with the address of the code
+ * corresponding to a particular C label.
  *
- * This implementation borrows heavily from Simon Tatham's coroutines
- * implementation in C:
- * http://www.chiark.greenend.org.uk/~sgtatham/coroutines.html
+ * For more information, see the GCC documentation:
+ * http://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html
+ *
  */
 
-#ifndef __LC_SWITCH_H__
-#define __LC_SWITCH_H__
-
-/* WARNING! lc implementation using switch() does not work if an
-   LC_SET() is done within another switch() statement! */
+#ifndef __LC_ADDRLABELS_H__
+#define __LC_ADDRLABELS_H__
 
 /** \hideinitializer */
-typedef unsigned short lc_t;
+typedef void *lc_t;
 
-#define LC_INIT(s) s = 0;
+#define LC_INIT(s) s = 0
 
-#define LC_RESUME(s) switch(s) { case 0:
+#define LC_RESUME(s)				\
+  do {						\
+    if(s != 0) {				\
+      goto *s;					\
+    }						\
+  } while(0)
 
-#define LC_SET(s) s = __LINE__; case __LINE__:
+#define LC_CONCAT2(s1, s2) s1##s2
+#define LC_CONCAT(s1, s2) LC_CONCAT2(s1, s2)
 
-#define LC_END(s) }
+#define LC_SET(s)				\
+  do {						\
+    LC_CONCAT(LC_LABEL, __LINE__):   	        \
+    (s) = &&LC_CONCAT(LC_LABEL, __LINE__);	\
+  } while(0)
 
-#endif /* __LC_SWITCH_H__ */
+#define LC_END(s)
+
+#endif /* __LC_ADDRLABELS_H__ */
 
 /** @} */

@@ -22,7 +22,7 @@ int AT24C32_write(unsigned int addr,unsigned char *buf,int l) {
    unsigned char address[2], *pdata[2];
    int ok, b,dir[2],length[2];
 
-   for(ok=1; l>0 && addr<0x1000; addr+=b, buf+=b, l-=b) {
+   for(ok=1; l>0 && addr<AT24C32_SIZE; addr+=b, buf+=b, l-=b) {
       b=MIN2(32-(addr%32),l);
       address[0] = (addr>>8)&0xf;
       address[1] = addr&0xff;

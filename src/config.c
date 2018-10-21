@@ -9,7 +9,8 @@
 extern struct Output_Data output_data;
 
 struct Config_Data config_data[] = {
-   {(char*)output_data.mask,           (short)sizeof(output_data.mask)},
+   {(char*)&output_data.channel_mask,     (short)sizeof(output_data.channel_mask)},
+   {(char*)output_data.subsystem_mask,    (short)sizeof(output_data.subsystem_mask)}
 };
 
 int config_load(void) {
