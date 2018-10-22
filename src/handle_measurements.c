@@ -26,7 +26,7 @@ void Handle_Measurements(void) {
 
    //bme280
    BME280_StartForcedMeasurement();
-   MRT0_Delay((1.25 + 2.3 * power(2, bme280_data.osrs_t-1) + 2.3 * power(2, bme280_data.osrs_p-1) + 0.575 + 2.3 * power(2, bme280_data.osrs_h-1) + 0.575)*1000);
+   MRT0_Delay(113*1000);
    if(BME280_ReadData()==1) {
       handle_measurements_data.bme280_humidity = bme280_data.ch/1024.0f;
       handle_measurements_data.bme280_pressure = bme280_data.cp/256.0f * 0.0075006f; //1 atm [standard atmosphere] = 760 torr = 101325 Pa = 1.01325 bar; 1 mmHg = 133.322387415 Pa --> 1 Pa = 0.0075006 mmHg

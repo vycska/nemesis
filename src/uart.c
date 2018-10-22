@@ -44,36 +44,34 @@ void UART0_IRQHandler(void) {
    unsigned char c;
    if(USART0INTSTAT&(1<<0)) { //RXRDY
       c = USART0RXDAT&0xff;
-      if(uart_data.mode == 0) { //normal default command receiving
-         if(isprint(c)) {
-            uart_data.s[uart_data.i++] = c;
-            if(uart_data.i>=UART_IN_MAX)
-               uart_data.i = 0;
-         }
-         else if(c == 0x15) { //first NAK received indicating XMODEM sending file
-            uart_data.mode = 1;
-         }
-         else if(uart_data.i != 0) {
-            uart_data.s[uart_data.i] = 0;
-            uart_data.i = 0;
-            Fifo_Command_Parser_Put(uart_data.s);
-         }
-      }
-      if(uart_data.mode == 1) { //XMODEM sending
-         gInterruptCause |= (1<<4);
-         Fifo_Xmodem_Sending_Put(c);
-      }
-      if(uart_data.mode == 2) { //XMODEM receiving
-         uart_data.s[uart_data.i++] = c;
-         if((uart_data.i==1 && (c==CAN || c==EOT)) || uart_data.i==132) {
-            if(handle_xmodem_data.receiving_ready==0) {
-               memcpy(handle_xmodem_data.receiving_data, uart_data.s, uart_data.i);
-               handle_xmodem_data.receiving_size = uart_data.i;
-               handle_xmodem_data.receiving_ready = 1;
+      switch(uart_data.mode) {
+         case 0: //normal default command receiving
+            if(isprint(c)) {
+               uart_data.s[uart_data.i++] = c;
+               if(uart_data.i>=UART_IN_MAX)
+                  uart_data.i = 0;
             }
-            else handle_xmodem_data.receiving_lost += 1;
-            uart_data.i = 0;
-         }
+            else if(uart_data.i != 0) {
+               uart_data.s[uart_data.i] = 0;
+               uart_data.i = 0;
+               Fifo_Command_Parser_Put(uart_data.s);
+            }
+            break;
+         case 1: //XMODEM sending
+            Fifo_Xmodem_Sending_Put(c);
+            break;
+         case 2: //XMODEM receiving
+            uart_data.s[uart_data.i++] = c;
+            if((uart_data.i==1 && (c==CAN || c==EOT)) || uart_data.i==132) {
+               if(handle_xmodem_data.receiving_ready==0) {
+                  memcpy(handle_xmodem_data.receiving_data, uart_data.s, uart_data.i);
+                  handle_xmodem_data.receiving_size = uart_data.i;
+                  handle_xmodem_data.receiving_ready = 1;
+               }
+               else handle_xmodem_data.receiving_lost += 1;
+               uart_data.i = 0;
+            }
+            break;
       }
    }
 }

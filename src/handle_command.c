@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern char _flash_start, _flash_end, _ram_start, _ram_end;
+extern char _flash_start, _flash_end, _ram_start, _ram_end, _heap_start;
 extern unsigned int startup_time;
 extern volatile unsigned int gInterruptCause;
 extern struct BME280_Data bme280_data;
@@ -291,7 +291,7 @@ void Handle_Command(char *pString) {
          break;
       case 0x3ca0: //eprom_read [eeprom at24c32 read]
          if(params_count(params)==3) {
-            unsigned char *data = (unsigned char*)0x10000000;
+            unsigned char *data = (unsigned char*)&_heap_start;
             if(AT24C32_read(params[2], data, params[3])) {
                for(i=0; i<params[3]; i++) {
                   mysprintf(buf, "[%x] : %x",params[2]+i, (unsigned int)data[i]);
@@ -341,7 +341,7 @@ void Handle_Command(char *pString) {
          break;
       case 0x7e54: //flash_read [flash at45db161d read]
          if(params_count(params)==3) {
-            unsigned char *data = (unsigned char*)0x10000000;
+            unsigned char *data = (unsigned char*)&_heap_start;
             AT45DB161D_read(params[2],data,params[3]);
             for(i=0; i<params[3]; i++) {
                mysprintf(buf, "[0x%x] : 0x%x",params[2]+i,(unsigned int)data[i]);
@@ -369,7 +369,7 @@ void Handle_Command(char *pString) {
          break;
       case 0xaf60: //flash_info
          if(params_count(params)==2) {
-            unsigned char *data = (unsigned char*)0x10000000;
+            unsigned char *data = (unsigned char*)&_heap_start;
             union AT45DB161D_status status;
             union AT45DB161D_info info;
             switch(params[2]) {
@@ -455,18 +455,38 @@ void Handle_Command(char *pString) {
       case 0x3da8: //fs_flush
          fs_flush();
          break;
-      case 0xfe9e: //xmodem_sending_file
-         if(params_count(params)==2 && params[2]>=0 && params[2]<DIRECTORY_ENTRIES)
+      case 0x858d: //send_file
+         if(params_count(params)==2 && params[2]>=0 && params[2]<DIRECTORY_ENTRIES) {
+            unsigned char uart_output_mask_value;
+            //disable output through uart [and save value that will be restored]
+            uart_output_mask_value = (output_data.channel_mask>>eOutputChannelUART)&1;
+            if(uart_output_mask_value==0)
+               output_data.channel_mask &= (~(1<<eOutputChannelLast));
+            else
+               output_data.channel_mask |= (1<<eOutputChannelLast);
+            output_data.channel_mask &= (~(1<<eOutputChannelUART));
             handle_xmodem_data.sending_file = params[2];
+            gInterruptCause |= (1<<4);
+            uart_data.i = 0;
+            uart_data.mode = 1;
+         }
          else {
             mysprintf(buf, "%d", handle_xmodem_data.sending_file);
             output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
          }
          break;
-      case 0x64ec: //xmodem_receiving_file
+      case 0x5638: //receive_file
          if(params_count(params)==2 && params_integer(2, params)==0) {
+            unsigned char uart_output_mask_value;
+            //disable output through uart [and save value that will be restored]
+            uart_output_mask_value = (output_data.channel_mask>>eOutputChannelUART)&1;
+            if(uart_output_mask_value==0)
+               output_data.channel_mask &= (~(1<<eOutputChannelLast));
+            else
+               output_data.channel_mask |= (1<<eOutputChannelLast);
+            output_data.channel_mask &= (~(1<<eOutputChannelUART));
             strcpy(handle_xmodem_data.receiving_file, (char*)params[2]);
-            gInterruptCause |= (0x1<<5);
+            gInterruptCause |= (1<<5);
             handle_xmodem_data.receiving_ready = 0;
             uart_data.i = 0;
             uart_data.mode = 2;

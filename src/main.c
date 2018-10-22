@@ -31,6 +31,7 @@ extern char _flash_start, _flash_end, _ram_start, _ram_end;
 extern char _intvecs_size, _text_size, _rodata_size, _data_size, _bss_size, _stack_size, _heap_size;
 
 extern struct pt pt_xmodem_sending, pt_xmodem_receiving;
+extern struct Output_Data output_data;
 extern struct UART_Data uart_data;
 extern volatile struct Switch_Data switch_data;
 
@@ -39,7 +40,7 @@ volatile unsigned int gInterruptCause = 0;
 
 void main(void) {
    char *command, buf[64];
-   unsigned char data[8];
+   unsigned char uart_output_mask_value, data[8];
    int i, l, t;
    unsigned short count_startups;
    unsigned int cause;
@@ -167,38 +168,42 @@ void main(void) {
          }
          if(cause & (1<<1)) { //alarm1
             DisableInterrupts();
-            gInterruptCause &= (~(0x1<<1));
+            gInterruptCause &= (~(1<<1));
             EnableInterrupts();
             Handle_Measurements();
             Handle_Log();
          }
          if(cause & (1<<2)) { //alarm2
             DisableInterrupts();
-            gInterruptCause &= (~(0x1<<2));
+            gInterruptCause &= (~(1<<2));
             EnableInterrupts();
          }
          if(cause & (1<<3)) { //button released
             DisableInterrupts();
-            gInterruptCause &= (~(0x1<<3));
+            gInterruptCause &= (~(1<<3));
             EnableInterrupts();
             mysprintf(buf, "switch %d",switch_data.duration);
             output(buf, eOutputSubsystemSwitch, eOutputLevelDebug);
          }
          if(cause & (1<<4)) { //xmodem sending file
             if(PT_SCHEDULE(Handle_Xmodem_Sending(&pt_xmodem_sending))==0) {
+               uart_output_mask_value = (output_data.channel_mask>>eOutputChannelLast)&1;
+               output_data.channel_mask |= (uart_output_mask_value<<eOutputChannelUART); //atstatau output'inimo per uart'a mask reiksme
                uart_data.i = 0;
                uart_data.mode = 0;
                DisableInterrupts();
-               gInterruptCause &= (~(0x1<<4));
+               gInterruptCause &= (~(1<<4));
                EnableInterrupts();
             }
          }
          if(cause & (1<<5)) { //xmodem receiving file
             if(PT_SCHEDULE(Handle_Xmodem_Receiving(&pt_xmodem_receiving))==0) {
+               uart_output_mask_value = (output_data.channel_mask>>eOutputChannelLast)&1;
+               output_data.channel_mask |= (uart_output_mask_value<<eOutputChannelUART); //atstatau output'inimo per uart'a mask reiksme [dabar ten reiksme 0]
                uart_data.i = 0;
                uart_data.mode = 0;
                DisableInterrupts();
-               gInterruptCause &= (~(0x1<<5));
+               gInterruptCause &= (~(1<<5));
                EnableInterrupts();
             }
          }

@@ -64,10 +64,10 @@ c :
 	rm -rf *.o *.elf *.bin *.hex *.map *.lst *.png cscope* tags deps objs
 
 i : a
-	~/bin/lpc21isp $(TARGET).hex /dev/ttyUSB0 115200 12000
+	~/bin/lpc21isp -verify -bin $(TARGET).bin /dev/ttyUSB0 115200 12000
 
 p :
-	picocom --baud 38400 --databits 8 --stopbits 1 --parity n --flow n --send-cmd 'sx -vv' --receive-cmd 'rx -vv' --logfile 'logs/picocom.log' --echo /dev/ttyUSB0
+	picocom --baud 38400 --databits 8 --stopbits 1 --parity n --flow n --send-cmd 'sx -vv' --receive-cmd 'rx -vv' --logfile 'logs/picocom.log' --echo --quiet /dev/ttyUSB0
 
 t :
 	ctags -R --extra=+f *

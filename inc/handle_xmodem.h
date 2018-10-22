@@ -11,6 +11,14 @@
 #define CAN 0x18 //cancel
 #define SUB 0x1a //substitute
 
+enum XmodemReceiveState {
+   eXmodemReceiveStateStartNAK        = 0,
+   eXmodemReceiveStateReceivedBlock   = 1,
+   eXmodemReceiveStateReceivedEOT     = 2,
+   eXmodemReceiveStateCancel          = 3,
+   eXmodemReceiveStateExit            = 4
+};
+
 struct Handle_Xmodem_Data {
    char receiving_file[MAX_FILE_NAME_SIZE];
    unsigned char receiving_data[132];
