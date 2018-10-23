@@ -39,6 +39,7 @@ $(TARGET).elf : $(AOBJS) $(COBJS)
 	arm-none-eabi-objdump -d -S -z -w $@ > $(TARGET).lst
 	arm-none-eabi-objcopy -O ihex $@ $(TARGET).hex
 	arm-none-eabi-objcopy -O binary $@ $(TARGET).bin
+	printf "78563412%.8x" $$(sum $(TARGET).bin | cut -d' ' -f1) | sed -E 's/(.{8})(..)(..)(..)(..)/\1\5\4\3\2/' | xxd -p -r | cat - $(TARGET).bin > $(TARGET).fw
 	find . -name '*.c' | xargs -n1 wc -l | sort -n -r | sed --silent '1,5p'
 	arm-none-eabi-nm -S --size-sort -r $(TARGET).elf | sed --silent '1,5p'
 	arm-none-eabi-size --format=sysv --common -d $(TARGET).elf

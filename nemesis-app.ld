@@ -50,6 +50,14 @@ SECTIONS
       _data_end = .;
    } > ram AT>flash
 
+   .fill : {
+      FILL(0xdeadc0de);
+      /* sulygiuojam, kad flashe uzimta vieta +8B butu 64 kartotinis, kas yra page'o dydis */
+      . = . + 64 - (. + 8 - ORIGIN(flash)) % 64 - 1;
+      BYTE(0xff);
+      _fill_end = .;
+   } > flash
+
    .bss (NOLOAD) :{
       _bss_start = .;
       *(.bss*)
