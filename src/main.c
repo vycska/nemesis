@@ -73,11 +73,13 @@ void main(void) {
       UART_Transmit("firmware file not present", 1);
    }
 
-   VTOR = (0x1000);
    _dsb();
    _set_msp(*((unsigned int*)0x1000));
    _dsb();
-   ((void(*)(void))(0x1004))();
+   VTOR = (0x1000);
+   _dsb();
+   ((void(*)(void))(*((unsigned int*)0x1004)))();
+   //((void(*)(void))(0x1004+1))();
 
    while(1);
 }
