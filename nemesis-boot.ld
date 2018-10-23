@@ -37,6 +37,13 @@ SECTIONS
       _rodata_end = .;
    } > flash = 0xcccccccc
 
+   .stack (NOLOAD) : {
+      _stack_start = .;
+      . += __stack_size;
+      . = ALIGN(0x10);
+      _stack_end = .;
+   } > ram
+
    .data : {
       _data_start = .;
       *(.data*)
@@ -48,13 +55,6 @@ SECTIONS
       . = ORIGIN(flash) + LENGTH(flash) - 1;
       BYTE(0xff);
    } > flash
-
-   .stack (NOLOAD) : {
-      _stack_start = .;
-      . += __stack_size;
-      . = ALIGN(0x10);
-      _stack_end = .;
-   } > ram
 
    .bss (NOLOAD) :{
       _bss_start = .;
