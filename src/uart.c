@@ -27,7 +27,7 @@ void UART_Init(void) {
 
 void UART_Transmit(char *s,int flag_addcrlf) {
    int i, k;
-   for(k=strlen(s)+(flag_addcrlf?2:0),i=0;i<k;i++) {
+   for(k=strlen(s),i=0;i<k+(flag_addcrlf?2:0);i++) {
       while((USART0STAT&(1<<2))==0); //wait until TXRDY
       USART0TXDAT = (i == k ? '\r' : (i == k + 1 ? '\n' : s[i]));
    }
