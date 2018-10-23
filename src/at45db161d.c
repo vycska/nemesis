@@ -1,5 +1,4 @@
 #include "at45db161d.h"
-#include "output.h"
 #include "spi.h"
 #include "utils.h"
 #include "lpc824.h"

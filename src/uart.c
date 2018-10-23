@@ -1,6 +1,4 @@
 #include "uart.h"
-#include "fifos.h"
-#include "handle_xmodem.h"
 #include "main.h"
 #include "utils.h"
 #include "utils-asm.h"
@@ -8,11 +6,6 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-
-extern volatile unsigned int gInterruptCause;
-extern struct Handle_Xmodem_Data handle_xmodem_data;
-
-struct UART_Data uart_data;
 
 //baudrate: 9600, main_clock: 60000000, uartdiv: 250, divided_clock: 240000, mult: 144, u_pclk: 153600, brgval: 1
 //baudrate: 38400, main_clock: 60000000, uartdiv: 5, divided_clock: 12000000, mult: 244, u_pclk: 6144000, brgcal: 10
@@ -27,51 +20,15 @@ void UART_Init(void) {
    USART0OSR= 0xf; //oversample 16
    USART0CTL = (0<<1 | 0<<2 | 0<<6 | 0<<16); //no break, no address detect mode, transmit not disabled, autobaud disabled
    USART0INTENSET = (1<<0); //interrupt when there is a received character
-   IPR0 = (IPR0&(~(3u<<30))) | (2u<<30); //UART0 interrupt priority 2 (0 = highest, 3 = lowest)
-   ISER0 = (1<<3); //UART0 interrupt enable
+   //IPR0 = (IPR0&(~(3u<<30))) | (2u<<30); //UART0 interrupt priority 2 (0 = highest, 3 = lowest)
+   //ISER0 = (1<<3); //UART0 interrupt enable
    USART0CFG = (1<<0 | 1<<2 | 0<<4 | 0<<6 | 0<<9 | 0<<11 | 0<<15); //USART0 enable, 8b data length, no parity, 1 stop bit, no flow control, asynchronous mode, no loopback mode
 }
 
-void UART_Transmit(char *s,int k,int flag_addcrlf) {
-   int i;
-   for(i=0;i<k+(flag_addcrlf?2:0);i++) { //+2 nes gale pridesim \r\n
+void UART_Transmit(char *s,int flag_addcrlf) {
+   int i, k;
+   for(k=strlen(s)+(flag_addcrlf?2:0),i=0;i<k;i++) {
       while((USART0STAT&(1<<2))==0); //wait until TXRDY
       USART0TXDAT = (i == k ? '\r' : (i == k + 1 ? '\n' : s[i]));
-   }
-}
-
-void UART0_IRQHandler(void) {
-   unsigned char c;
-   if(USART0INTSTAT&(1<<0)) { //RXRDY
-      c = USART0RXDAT&0xff;
-      switch(uart_data.mode) {
-         case 0: //normal default command receiving
-            if(isprint(c)) {
-               uart_data.s[uart_data.i++] = c;
-               if(uart_data.i>=UART_IN_MAX)
-                  uart_data.i = 0;
-            }
-            else if(uart_data.i != 0) {
-               uart_data.s[uart_data.i] = 0;
-               uart_data.i = 0;
-               Fifo_Command_Parser_Put(uart_data.s);
-            }
-            break;
-         case 1: //XMODEM sending
-            Fifo_Xmodem_Sending_Put(c);
-            break;
-         case 2: //XMODEM receiving
-            uart_data.s[uart_data.i++] = c;
-            if((uart_data.i==1 && (c==CAN || c==EOT)) || uart_data.i==132) {
-               if(handle_xmodem_data.receiving_ready==0) {
-                  memcpy(handle_xmodem_data.receiving_data, uart_data.s, uart_data.i);
-                  handle_xmodem_data.receiving_size = uart_data.i;
-                  handle_xmodem_data.receiving_ready = 1;
-               }
-               else handle_xmodem_data.receiving_lost += 1;
-               uart_data.i = 0;
-            }
-            break;
-      }
    }
 }

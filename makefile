@@ -2,7 +2,7 @@
 
 ################################################################################
 
-TARGET := nemesis
+TARGET := nemesis-boot
 
 DEBUG := 0
 OPTIM := O1
@@ -24,9 +24,9 @@ ifeq ($(DEBUG),1)
    CFLAGS += -g
 endif
 
-vpath %.h inc:inc/pt:inc/uip
+vpath %.h inc
 vpath %.s src
-vpath %.c src:src/uip
+vpath %.c src
 
 $(shell if [ ! -d deps ]; then mkdir -p deps; fi)
 $(shell if [ ! -d objs ]; then mkdir -p objs; fi)
