@@ -10,8 +10,9 @@
 .global EndCritical
 .global WaitForInterrupt
 .global GetPSR
-.global _DSB
-.global _sp
+.global _dsb
+.global _get_imsp
+.global _set_msp
 
 .thumb_func
 DisableInterrupts:
@@ -45,13 +46,18 @@ mrs r0,psr
 bx lr
 
 .thumb_func
-_DSB:
+_dsb:
 dsb sy
 bx lr
 
 .thumb_func
-_sp:
+_get_msp:
 mrs r0,msp
+bx lr
+
+.thumb_func
+_set_msp:
+msr msp, r0
 bx lr
 
 .end

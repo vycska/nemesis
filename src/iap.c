@@ -21,7 +21,7 @@ int iap_prepare_sectors(unsigned int start_sector, unsigned int end_sector) {
 //this command is used to program the flash memory
 //"dest_address" must be 64 bytes boundary; "source_address" must be word boundary; "len" must be 64 | 128 | 256 | 512 | 1024
 int iap_copy_ram_to_flash(unsigned int dest_address, unsigned char *source_address, unsigned int len) {
-   _DSB();
+   _dsb();
    DisableInterrupts();
    iap_prepare_sectors(sector(dest_address), sector(dest_address + len - 1));
    command[0] = IAP_COPY_RAM_TO_FLASH;
@@ -35,7 +35,7 @@ int iap_copy_ram_to_flash(unsigned int dest_address, unsigned char *source_addre
 
 //this command is used to erase a sector or multiple sectors of on-chip flash memory
 int iap_erase_sectors(int start_sector, int end_sector) {
-   _DSB();
+   _dsb();
    DisableInterrupts();
    iap_prepare_sectors(start_sector, end_sector);
    command[0] = IAP_ERASE_SECTORS;
@@ -95,7 +95,7 @@ unsigned int *iap_read_uid(void) {
 
 //this command is used to erase a page or multiple pages of on-chip flash memory
 int iap_erase_page(int start_page, int end_page) {
-   _DSB();
+   _dsb();
    DisableInterrupts();
    iap_prepare_sectors(sector(start_page*64), sector(end_page*64));
    command[0] = IAP_ERASE_PAGE;
