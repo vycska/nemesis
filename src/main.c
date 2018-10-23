@@ -47,7 +47,8 @@ void main(void) {
                sum &= 0xffff;
             }
          }
-         if(sum==data[1]) {
+         //if(sum==data[1]) {
+         if(1) {
             for(error=0, flash_addr=0x1000,file_addr=8; file_addr < size-8 && !error; file_addr+=64, flash_addr+=64) {
                fs_fileread_datapart(file, file_addr, 64, buf);
                if(iap_erase_page(flash_addr>>6, flash_addr>>6)==IAP_CMD_SUCCESS && iap_copy_ram_to_flash(flash_addr,buf,64)==IAP_CMD_SUCCESS && iap_compare(flash_addr, (unsigned int)buf, 64)==IAP_CMD_SUCCESS) {
