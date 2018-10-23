@@ -5,7 +5,7 @@ _checksum = -(_stack_end + (Reset_Handler | 1) + (NMI_Handler | 1) + (HardFault_
 
 MEMORY
 {
-   flash(rx) : ORIGIN = 0x00000000, LENGTH = 32K
+   flash(rx) : ORIGIN = 0x00001000, LENGTH = 28K
    ram(rw)   : ORIGIN = 0x10000000, LENGTH = 8K
 }
 
