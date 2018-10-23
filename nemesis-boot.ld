@@ -30,10 +30,16 @@ SECTIONS
       _text_end = .;
    } > flash = 0xbbbbbbbb
 
+   .data : {
+      _data_start = .;
+      *(.data*)
+      _data_end = .;
+   } > ram AT>flash
+
    .rodata : {
       _rodata_start = .;
       *(.rodata*)
-      . = ALIGN(0x10);
+      . = ORIGIN(flash) + LENGTH(flash);
       _rodata_end = .;
    } > flash = 0xcccccccc
 
@@ -43,12 +49,6 @@ SECTIONS
       . = ALIGN(0x10);
       _stack_end = .;
    } > ram
-
-   .data : {
-      _data_start = .;
-      *(.data*)
-      _data_end = .;
-   } > ram AT>flash
 
    .bss (NOLOAD) :{
       _bss_start = .;
