@@ -30,18 +30,24 @@ SECTIONS
       _text_end = .;
    } > flash = 0xbbbbbbbb
 
+   .rodata : {
+      _rodata_start = .;
+      *(.rodata*)
+      . = ALIGN(0x10);
+      _rodata_end = .;
+   } > flash = 0xcccccccc
+
    .data : {
       _data_start = .;
       *(.data*)
       _data_end = .;
    } > ram AT>flash
 
-   .rodata : {
-      _rodata_start = .;
-      *(.rodata*)
-      . = ORIGIN(flash) + LENGTH(flash);
-      _rodata_end = .;
-   } > flash = 0xcccccccc
+   .fill : {
+      FILL(0xdeadc0de);
+      . = ORIGIN(flash) + LENGTH(flash) - 1;
+      BYTE(0xff);
+   } > flash
 
    .stack (NOLOAD) : {
       _stack_start = .;
