@@ -55,11 +55,10 @@ void main(void) {
          }
          if(sum == data[1]) {
             UART_Transmit("checksum ok", 1);
-            res = iap_erase_page(FW_FLASH_ADDR>>6, (FW_FLASH_ADDR+data[2]-1)>>6);
-            if(res == IAP_CMD_SUCCESS) {
-               UART_Transmit("erase pages ok", 1);
-               for(error=0, i=0; i<(data[2]>>9) && !error; i++) {
-                  fs_fileread_datapart(file, 12+i*FW_BLOCK_SIZE, FW_BLOCK_SIZE, buf);
+            for(error=0, i=0; i<(data[2]>>9) && !error; i++) {
+               fs_fileread_datapart(file, 12+i*FW_BLOCK_SIZE, FW_BLOCK_SIZE, buf);
+               res = iap_erase_page((FW_FLASH_ADDR+i*FW_BLOCK_SIZE)>>6, (FW_FLASH_ADDR+i*FW_BLOCK_SIZE+FW_BLOCK_SIZE-1)>>6);
+               if(res == IAP_CMD_SUCCESS) {
                   res = iap_copy_ram_to_flash(FW_FLASH_ADDR+i*FW_BLOCK_SIZE, buf, FW_BLOCK_SIZE);
                   if(res == IAP_CMD_SUCCESS) {
                      res = iap_compare(FW_FLASH_ADDR+i*FW_BLOCK_SIZE, (unsigned int)buf, FW_BLOCK_SIZE);
@@ -76,13 +75,14 @@ void main(void) {
                      error = 1;
                   }
                }
+               else {
+                  UART_Transmit("erase pages error", 1);
+                  error = 1;
+               }
             }
-            else {
-               UART_Transmit("erase pages error", 1);
-               error = 1;
-            }
-            if(!error)
+            if(!error) {
                UART_Transmit("ok", 1);
+            }
          }
          else {
             UART_Transmit("checksum error", 1);
