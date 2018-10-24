@@ -43,7 +43,7 @@ void main(void) {
       UART_Transmit("firmware file found", 1);
       size = fs_filesize(file);
       fs_fileread_datapart(file, 0, 12, (unsigned char*)data);
-      if(data[0] == 0x12345678 && data[2]+12<=size && data[2]<=28*1024) {
+      if(data[0] == 0x12345678 && data[2]+12<=size && data[2]<=27*1024) {
          UART_Transmit("firmware file ok", 1);
          for(sum=0,i=0; i<(data[2]>>9); i++) {
             fs_fileread_datapart(file, 12+i*FW_BLOCK_SIZE, FW_BLOCK_SIZE, buf);
