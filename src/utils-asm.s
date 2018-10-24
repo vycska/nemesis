@@ -1,48 +1,23 @@
 .syntax unified
-.cpu cortex-m3
+.cpu cortex-m0plus
 .thumb
 
 .text
 
-.global DisableInterrupts
-.global EnableInterrupts
-.global StartCritical
-.global EndCritical
-.global WaitForInterrupt
-.global GetPSR
+.global _disable_irq
+.global _enable_irq
 .global _dsb
-.global _get_imsp
+.global _get_msp
 .global _set_msp
 
 .thumb_func
-DisableInterrupts:
+_disable_irq:
 cpsid i
 bx lr
 
 .thumb_func
-EnableInterrupts:
+_enable_irq:
 cpsie i
-bx lr
-
-.thumb_func
-StartCritical:
-mrs r0,primask
-cpsid i
-bx lr
-
-.thumb_func
-EndCritical:
-msr primask,r0
-bx lr
-
-.thumb_func
-WaitForInterrupt:
-wfi
-bx lr
-
-.thumb_func
-GetPSR:
-mrs r0,psr
 bx lr
 
 .thumb_func

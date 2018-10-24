@@ -22,27 +22,27 @@ int iap_prepare_sectors(unsigned int start_sector, unsigned int end_sector) {
 //"dest_address" must be 64 bytes boundary; "source_address" must be word boundary; "len" must be 64 | 128 | 256 | 512 | 1024
 int iap_copy_ram_to_flash(unsigned int dest_address, unsigned char *source_address, unsigned int len) {
    _dsb();
-   DisableInterrupts();
+   _disable_irq();
    iap_prepare_sectors(sector(dest_address), sector(dest_address + len - 1));
    command[0] = IAP_COPY_RAM_TO_FLASH;
    command[1] = dest_address;
    command[2] = (unsigned int)source_address;
    command[3] = len;
    IAP_EXECUTE(command, result);
-   EnableInterrupts();
+   _enable_irq();
    return result[0]; //CMD_SUCCESS | SRC_ADDR_ERROR | DST_ADDR_ERROR | SRC_ADDR_NOT_MAPPED | DST_ADDR_NOT_MAPPED | COUNT_ERROR | SECTOR_NOT_PREPARED
 }
 
 //this command is used to erase a sector or multiple sectors of on-chip flash memory
 int iap_erase_sectors(int start_sector, int end_sector) {
    _dsb();
-   DisableInterrupts();
+   _disable_irq();
    iap_prepare_sectors(start_sector, end_sector);
    command[0] = IAP_ERASE_SECTORS;
    command[1] = start_sector;
    command[2] = end_sector;
    IAP_EXECUTE(command, result);
-   EnableInterrupts();
+   _enable_irq();
    return result[0]; //CMD_SUCCESS | BUSY | SECTOR_NOT_PREPARED | INVALID_SECTOR
 }
 
@@ -96,12 +96,12 @@ unsigned int *iap_read_uid(void) {
 //this command is used to erase a page or multiple pages of on-chip flash memory
 int iap_erase_page(int start_page, int end_page) {
    _dsb();
-   DisableInterrupts();
+   _disable_irq();
    iap_prepare_sectors(sector(start_page*64), sector(end_page*64));
    command[0] = IAP_ERASE_PAGE;
    command[1] = start_page;
    command[2] = end_page;
    IAP_EXECUTE(command, result);
-   EnableInterrupts();
+   _enable_irq();
    return result[0]; //CMD_SUCCESS | BUSY | SECTOR_NOT_PREPARED | INVALID_SECTOR
 }

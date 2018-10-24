@@ -14,7 +14,7 @@
 .word 0
 .word 0
 .word 0
-.word _checksum
+.word __checksum
 .word 0
 .word 0
 .word 0

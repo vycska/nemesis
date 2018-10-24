@@ -20,8 +20,8 @@ void UART_Init(void) {
    USART0OSR= 0xf; //oversample 16
    USART0CTL = (0<<1 | 0<<2 | 0<<6 | 0<<16); //no break, no address detect mode, transmit not disabled, autobaud disabled
    USART0INTENSET = (1<<0); //interrupt when there is a received character
-   //IPR0 = (IPR0&(~(3u<<30))) | (2u<<30); //UART0 interrupt priority 2 (0 = highest, 3 = lowest)
-   //ISER0 = (1<<3); //UART0 interrupt enable
+   IPR0 = (IPR0&(~(3u<<30))) | (2u<<30); //UART0 interrupt priority 2 (0 = highest, 3 = lowest)
+   ISER0 = (1<<3); //UART0 interrupt enable
    USART0CFG = (1<<0 | 1<<2 | 0<<4 | 0<<6 | 0<<9 | 0<<11 | 0<<15); //USART0 enable, 8b data length, no parity, 1 stop bit, no flow control, asynchronous mode, no loopback mode
 }
 

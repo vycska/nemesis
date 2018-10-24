@@ -9,13 +9,19 @@
 #include "utils-asm.h"
 #include "lpc824.h"
 
+#define FW_FILE_NAME "nemesis-app.fw"
+#define FW_FLASH_ADDR 0x1400
+#define FW_BLOCK_SIZE 512
+
 extern char _data_start_lma, _data_start, _data_end, _bss_start, _bss_end;
-extern char _flash_start, _flash_end, _ram_start, _ram_end;
-extern char _intvecs_size, _text_size, _rodata_size, _data_size, _bss_size, _stack_size, _heap_size;
 
 void main(void) {
-   unsigned char buf[64];
-   unsigned int error, i, file_addr, flash_addr, sum, file, size, data[2];
+   unsigned char buf[FW_BLOCK_SIZE];
+   int i, j, res, error, file, size;
+   unsigned int sum, data[3];
+
+   _disable_irq();
+
    PDRUNCFG &= (~(1<<0 | 1<<1 | 1<<2 | 1<<4 | 1<<7)); //IRC output, IRC, flash, ADC, PLL powered
    SYSAHBCLKCTRL |= (1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7 | 1<<10 | 1<<11 | 1<<14 | 1<<18 | 1<<24); //enable clock for ROM, RAM0_1, FLASHREG, FLASH, I2C0, GPIO, SWM, MRT, SPI0, USART0, IOCON, ADC
    PRESETCTRL |= (1<<0 | 1<<2 | 1<<3 | 1<<6 | 1<<7 | 1<<10 | 1<<11 | 1<<24); //clear SPI0, USART FRG, USART0, I2C0, MRT, GPIO, flash controller, ADC reset
@@ -25,64 +31,78 @@ void main(void) {
    SPI0_Init();
    UART_Init();
 
-   UART_Transmit("nemesis bootloader", 1);
+   UART_Transmit("\r\n\r\nnemesis bootloader v1", 1);
    UART_Transmit(__DATE__, 1);
    UART_Transmit(__TIME__, 1);
 
    fs_mount();
-   if(fs_checkdisk()==STATUS_ERROR) {
+   if(fs_checkdisk()==STATUS_ERROR)
       fs_format();
-      UART_Transmit("fs_checkdisk_error",1);
-   }
 
-   if((file=fs_filesearch("nemesis-app.fw")) != STATUS_ERROR) {
+   if((file=fs_filesearch(FW_FILE_NAME)) != STATUS_ERROR) {
+      UART_Transmit("firmware file found", 1);
       size = fs_filesize(file);
-      fs_fileread_datapart(file, 0, 8, (unsigned char*)data);
-      if(data[0] == 0x12345678) {
-         for(sum=0,file_addr=8; file_addr < size-8; file_addr+=64) {
-            fs_fileread_datapart(file, file_addr, 64, buf);
-            for(i=0; i<64; i++) {
+      fs_fileread_datapart(file, 0, 12, (unsigned char*)data);
+      if(data[0] == 0x12345678 && data[2]+12<=size && data[2]<=28*1024) {
+         UART_Transmit("firmware file ok", 1);
+         for(sum=0,i=0; i<(data[2]>>9); i++) {
+            fs_fileread_datapart(file, 12+i*FW_BLOCK_SIZE, FW_BLOCK_SIZE, buf);
+            for(j=0; j<FW_BLOCK_SIZE; j++) {
                sum = (sum>>1) + ((sum&1)<<15);
-               sum += buf[i];
+               sum += buf[j];
                sum &= 0xffff;
             }
          }
-         //if(sum==data[1]) {
-         if(1) {
-            for(error=0, flash_addr=0x1000,file_addr=8; file_addr < size-8 && !error; file_addr+=64, flash_addr+=64) {
-               fs_fileread_datapart(file, file_addr, 64, buf);
-               if(iap_erase_page(flash_addr>>6, flash_addr>>6)==IAP_CMD_SUCCESS && iap_copy_ram_to_flash(flash_addr,buf,64)==IAP_CMD_SUCCESS && iap_compare(flash_addr, (unsigned int)buf, 64)==IAP_CMD_SUCCESS) {
-                  UART_Transmit(".", 0);
-               }
-               else {
-                  error = 1;
-                  UART_Transmit("flash erase/write/compare error", 1);
+         if(sum == data[1]) {
+            UART_Transmit("checksum ok", 1);
+            res = iap_erase_page(FW_FLASH_ADDR>>6, (FW_FLASH_ADDR+data[2]-1)>>6);
+            if(res == IAP_CMD_SUCCESS) {
+               UART_Transmit("erase pages ok", 1);
+               for(error=0, i=0; i<(data[2]>>9) && !error; i++) {
+                  fs_fileread_datapart(file, 12+i*FW_BLOCK_SIZE, FW_BLOCK_SIZE, buf);
+                  res = iap_copy_ram_to_flash(FW_FLASH_ADDR+i*FW_BLOCK_SIZE, buf, FW_BLOCK_SIZE);
+                  if(res == IAP_CMD_SUCCESS) {
+                     res = iap_compare(FW_FLASH_ADDR+i*FW_BLOCK_SIZE, (unsigned int)buf, FW_BLOCK_SIZE);
+                     if(res == IAP_CMD_SUCCESS) {
+                        UART_Transmit(".", 0);
+                     }
+                     else {
+                        UART_Transmit("compare error", 1);
+                        error = 1;
+                     }
+                  }
+                  else {
+                     UART_Transmit("copy to flash error", 1);
+                     error = 1;
+                  }
                }
             }
+            else {
+               UART_Transmit("erase pages error", 1);
+               error = 1;
+            }
             if(!error)
-               UART_Transmit("\r\nok", 1);
+               UART_Transmit("ok", 1);
          }
          else {
             UART_Transmit("checksum error", 1);
+            error = 2;
          }
       }
       else {
          UART_Transmit("firmware file error", 1);
+         error = 2;
+      }
+      if(error==0 || error == 2) {
+         fs_filedelete(file);
+         fs_flush();
       }
    }
-   else {
-      UART_Transmit("firmware file not present", 1);
-   }
 
+   _set_msp(*((unsigned int*)FW_FLASH_ADDR));
+   VTOR = (FW_FLASH_ADDR);
    _dsb();
-   _set_msp(*((unsigned int*)0x1000));
-   _dsb();
-   VTOR = (0x1000);
-   _dsb();
-   ((void(*)(void))(*((unsigned int*)0x1004)))();
-   //((void(*)(void))(0x1004+1))();
-
-   while(1);
+   ((void(*)(void))(*((unsigned int*)(FW_FLASH_ADDR+4))))();
 }
 
 void init(void) {

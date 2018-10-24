@@ -1,11 +1,11 @@
 ENTRY(Reset_Handler)
 
-__stack_size = 1024;
-_checksum = -(_stack_end + (Reset_Handler | 1) + (NMI_Handler | 1) + (HardFault_Handler | 1));
+__stack_size = 2048;
+__checksum = -(_stack_end + (Reset_Handler | 1) + (NMI_Handler | 1) + (HardFault_Handler | 1));
 
 MEMORY
 {
-   flash(rx) : ORIGIN = 0x00000000, LENGTH = 4K
+   flash(rx) : ORIGIN = 0x00000000, LENGTH = 5K
    ram(rw)   : ORIGIN = 0x10000000, LENGTH = 8K
 }
 
