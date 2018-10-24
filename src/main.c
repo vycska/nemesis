@@ -46,18 +46,21 @@ void main(void) {
    unsigned int cause;
    struct timer timer_flush;
 
+   EnableInterrupts();
+
    PDRUNCFG &= (~(1<<0 | 1<<1 | 1<<2 | 1<<4 | 1<<7)); //IRC output, IRC, flash, ADC, PLL powered
    SYSAHBCLKCTRL |= (1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7 | 1<<10 | 1<<11 | 1<<14 | 1<<18 | 1<<24); //enable clock for ROM, RAM0_1, FLASHREG, FLASH, I2C0, GPIO, SWM, MRT, SPI0, USART0, IOCON, ADC
    PRESETCTRL |= (1<<0 | 1<<2 | 1<<3 | 1<<6 | 1<<7 | 1<<10 | 1<<11 | 1<<24); //clear SPI0, USART FRG, USART0, I2C0, MRT, GPIO, flash controller, ADC reset
 
    PLL_Init();
+   LED_Init(1);
+   SPI0_Init();
+   UART_Init();
+
    ADC_Init();
    I2C0_Init();
-   LED_Init(1);
    MRT_Init();
-   SPI0_Init();
    Switch_Init();
-   UART_Init();
 
    MRT0_Delay(2*1000);
 
