@@ -492,27 +492,6 @@ void Handle_Command(char *pString) {
             uart_data.mode = 2;
          }
          break;
-      case 0xbf26: //temp
-         if(params_count(params)==1) {
-            unsigned char buf2[64];
-            int file;
-            unsigned int size, sum, file_addr;
-            file = fs_filesearch("nemesis-app.fw");
-            if(file != STATUS_ERROR) {
-               size = fs_filesize(file);
-               for(sum=0, file_addr=8; file_addr<size-8; file_addr+=64) {
-                  fs_fileread_datapart(file, file_addr, 64, buf2);
-                  for(i=0; i<64; i++) {
-                     sum = (sum>>1) + ((sum&1)<<15);
-                     sum += buf2[i];
-                     sum &= 0xffff;
-                  }
-               }
-               mysprintf(buf, "sum: %x", sum);
-               output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
-            }
-         }
-         break;
       default:
          output("Unknown command", eOutputSubsystemSystem, eOutputLevelImportant);
    }

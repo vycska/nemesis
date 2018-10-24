@@ -1,7 +1,8 @@
 ENTRY(Reset_Handler)
 
+__flash_align = 512;
 __stack_size = 2048;
-_checksum = -(_stack_end + (Reset_Handler | 1) + (NMI_Handler | 1) + (HardFault_Handler | 1));
+__checksum = -(_stack_end + (Reset_Handler | 1) + (NMI_Handler | 1) + (HardFault_Handler | 1));
 
 MEMORY
 {
@@ -52,8 +53,7 @@ SECTIONS
 
    .fill : {
       FILL(0xdeadc0de);
-      /* sulygiuojam, kad flashe uzimta vieta butu 64 kartotinis, kas yra page'o dydis */
-      . = . + 64 - (. - ORIGIN(flash)) % 64 - 1;
+      . = . + __flash_align - (. - ORIGIN(flash)) % __flash_align - 1;
       BYTE(0xff);
       _fill_end = .;
    } > flash
