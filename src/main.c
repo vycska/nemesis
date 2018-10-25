@@ -32,7 +32,7 @@ void main(void) {
    SPI0_Init();
    UART_Init();
 
-   UART_Transmit("\r\n\r\nnemesis bootloader v1", 1);
+   UART_Transmit("\r\nnemesis bootloader v1", 1);
    UART_Transmit(__DATE__, 1);
    UART_Transmit(__TIME__, 1);
 
@@ -46,7 +46,7 @@ void main(void) {
       fs_fileread_datapart(file, 0, 12, (unsigned char*)data);
       if(data[0] == FW_FILE_MAGIC && data[1]+12<=size && data[1]>=FW_BLOCK_SIZE && data[1]<=0x8000-FW_FLASH_ADDR) {
          UART_Transmit("firmware file ok", 1);
-         for(sum=0,i=0; i<(data[1]>>9); i++) {
+         for(sum=0,i=0; i<(data[1]/FW_BLOCK_SIZE); i++) {
             fs_fileread_datapart(file, 12+i*FW_BLOCK_SIZE, FW_BLOCK_SIZE, buf);
             for(j=0; j<FW_BLOCK_SIZE; j++) {
                sum = (sum>>1) + ((sum&1)<<15);
@@ -56,7 +56,7 @@ void main(void) {
          }
          if(sum == data[2]) {
             UART_Transmit("checksum ok", 1);
-            for(error=0, i=0; i<(data[1]>>9) && !error; i++) {
+            for(error=0, i=0; i<(data[1]/FW_BLOCK_SIZE) && !error; i++) {
                fs_fileread_datapart(file, 12+i*FW_BLOCK_SIZE, FW_BLOCK_SIZE, buf);
                //res = iap_erase_page((FW_FLASH_ADDR+i*FW_BLOCK_SIZE)>>6, (FW_FLASH_ADDR+i*FW_BLOCK_SIZE+FW_BLOCK_SIZE-1)>>6);
                res = iap_erase_sectors((FW_FLASH_ADDR+i*FW_BLOCK_SIZE)>>10, (FW_FLASH_ADDR+i*FW_BLOCK_SIZE+FW_BLOCK_SIZE-1)>>10);
