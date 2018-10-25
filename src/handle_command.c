@@ -517,7 +517,7 @@ void Handle_Command(char *pString) {
          }
          break;
       default:
-         output("Unknown command", eOutputSubsystemSystem, eOutputLevelImportant);
+         output("unknown command", eOutputSubsystemSystem, eOutputLevelImportant);
    }
 }
 

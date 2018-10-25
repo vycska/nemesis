@@ -28,7 +28,7 @@
 
 extern char _data_start_lma, _data_start, _data_end, _bss_start, _bss_end;
 extern char _flash_start, _flash_end, _ram_start, _ram_end;
-extern char _intvecs_size, _text_size, _rodata_size, _data_size, _bss_size, _stack_size, _heap_size;
+extern char _flash_size, _ram_size, _intvecs_size, _text_size, _rodata_size, _data_size, _fill_size, _bss_size, _stack_size, _heap_size;
 
 extern struct pt pt_xmodem_sending, pt_xmodem_receiving;
 extern struct Output_Data output_data;
@@ -44,6 +44,7 @@ void main(void) {
    unsigned short count_startups;
    int i, l, config_load_result;
    unsigned int cause;
+   float used_value;
    struct timer timer_flush;
 
    ICPR0 = (0x3<<0 | 0x7<<3 | 0xffff<<7 | 0xff<<24); //clear all interrupt pending status
@@ -54,16 +55,17 @@ void main(void) {
    PRESETCTRL |= (1<<0 | 1<<2 | 1<<3 | 1<<6 | 1<<7 | 1<<10 | 1<<11 | 1<<24); //clear SPI0, USART FRG, USART0, I2C0, MRT, GPIO, flash controller, ADC reset
 
    //PLL_Init() LED_Init(1) SPI0_Init() UART_Init() igyvendinti bootloader'yje
-   ADC_Init();
-   I2C0_Init();
+   //LED pin P0.23; SPI0 pins P0.3 (MISO), P0.5 (MOSI), P0.13 (SCK), P0.17 (SSEL); SPI0 used by AT45DB161D; UART0 pins P0.0 (RX) and P0.4 (TX)
+   ADC_Init(); //ADC pin P0.14
+   I2C0_Init(); //I2C0 pins P0.10 (SCL) and P0.11 (SDA); I2C0 used by BME280 and AT24C32
    MRT_Init();
-   Switch_Init();
+   Switch_Init(); //switch on pin P0.2
 
    MRT0_Delay(2*1000); //2ms gali reiketi iki komunikacijos su BME280
 
    BME280_Init();
-   DS18B20_Init();
-   DS3231_Init();
+   DS18B20_Init(); //this initializes one-wire pin P0.9
+   DS3231_Init(); //this initializes INT# pin P0.15
 
    startup_time = DS3231_GetUnixTime();
    AT24C32_read(0x0, data, 2);
@@ -89,7 +91,7 @@ void main(void) {
    PT_INIT(&pt_xmodem_sending);
    PT_INIT(&pt_xmodem_receiving);
 
-   for(i=0; i<=16; i++) {
+   for(i=0; i<=15; i++) {
       switch(i) {
          case 0:
             mysprintf(buf, "\r\nstartup time: %u", startup_time);
@@ -104,43 +106,44 @@ void main(void) {
             mysprintf(buf,"%s",config_load_result?"config load error":"config load ok");
             break;
          case 4:
-            mysprintf(buf, "_flash_start: %x [%u]", (unsigned int)&_flash_start,(unsigned int)&_flash_start);
+            mysprintf(buf, "_flash_size: %u [0x%x - 0x%x]", (unsigned int)&_flash_size, (unsigned int)&_flash_start, (unsigned int)&_flash_end);
             break;
          case 5:
-            mysprintf(buf, "_flash_end: %x [%u]", (unsigned int)&_flash_end,(unsigned int)&_flash_end);
+            mysprintf(buf, "_ram_size: %u [0x%x - 0x%x]", (unsigned int)&_ram_size, (unsigned int)&_ram_start, (unsigned int)&_ram_end);
             break;
          case 6:
-            mysprintf(buf, "_ram_start: %x [%u]", (unsigned int)&_ram_start,(unsigned int)&_ram_start);
-            break;
-         case 7:
-            mysprintf(buf, "_ram_end: %x [%u]", (unsigned int)&_ram_end,(unsigned int)&_ram_end);
-            break;
-         case 8:
             mysprintf(buf, "_intvecs_size: %u", (unsigned int)&_intvecs_size);
             break;
-         case 9:
+         case 7:
             mysprintf(buf, "_text_size: %u", (unsigned int)&_text_size);
             break;
-         case 10:
+         case 8:
             mysprintf(buf, "_rodata_size: %u", (unsigned int)&_rodata_size);
             break;
-         case 11:
+         case 9:
             mysprintf(buf, "_data_size: %u", (unsigned int)&_data_size);
             break;
-         case 12:
+         case 10:
+            mysprintf(buf, "_fill_size: %u", (unsigned int)&_fill_size);
+            break;
+         case 11:
             mysprintf(buf, "_bss_size: %u", (unsigned int)&_bss_size);
             break;
-         case 13:
+         case 12:
             mysprintf(buf, "_stack_size: %u", (unsigned int)&_stack_size);
             break;
-         case 14:
+         case 13:
             mysprintf(buf, "_heap_size: %u", (unsigned int)&_heap_size);
             break;
-         case 15:
-            mysprintf(buf, "flash used: %u",(unsigned int)&_intvecs_size+(unsigned int)&_text_size+(unsigned int)&_rodata_size+(unsigned int)&_data_size);
+         case 14:
+            l = (int)&_intvecs_size + (int)&_text_size + (int)&_rodata_size + (int)&_data_size;
+            used_value = 100.0f * (float)l / (int)&_flash_size;
+            mysprintf(buf, "flash used: %d [%f1%%]", l, (char*)&used_value);
             break;
-         case 16:
-            mysprintf(buf, "ram used: %u",(unsigned int)&_data_size+(unsigned int)&_bss_size+(unsigned int)&_stack_size+(unsigned int)&_heap_size);
+         case 15:
+            l = (int)&_stack_size + (int)&_data_size + (int)&_bss_size; //heap'o nepridedu, nes jam priskiriu siaip vietos tiek kiek lieka
+            used_value = 100.0f * (float)l / (int)&_ram_size;
+            mysprintf(buf, "ram used: %d [%f1%%]", l, (char*)&used_value);
             break;
       }
       output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
@@ -148,7 +151,7 @@ void main(void) {
 
    //BME280
    if(BME280_GetID(data)==1) {
-      mysprintf(buf,"BME280 id: %x",(unsigned int)data[0]);
+      mysprintf(buf,"BME280 id: 0x%x",(unsigned int)data[0]);
       output(buf, eOutputSubsystemBME280, eOutputLevelNormal);
    }
 
