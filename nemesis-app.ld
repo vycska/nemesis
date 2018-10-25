@@ -1,6 +1,6 @@
 ENTRY(Reset_Handler)
 
-__flash_align = 512;
+__flash_align = 1024;
 __stack_size = 2048;
 __checksum = -(_stack_end + (Reset_Handler | 1) + (NMI_Handler | 1) + (HardFault_Handler | 1));
 

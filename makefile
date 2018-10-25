@@ -62,7 +62,7 @@ deps/%.d : ;
 a : $(TARGET).elf
 
 c :
-	rm -rf *.o *.elf *.bin *.hex *.map *.lst *.png cscope* tags deps objs
+	rm -rf *.o *.elf *.bin *.hex *.fw *.map *.lst *.png cscope* tags deps objs
 
 i : a
 	~/bin/lpc21isp -verify -bin $(TARGET).bin /dev/ttyUSB0 115200 12000

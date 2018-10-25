@@ -492,6 +492,30 @@ void Handle_Command(char *pString) {
             uart_data.mode = 2;
          }
          break;
+      case 0x88a2: //iflash_writefile
+         if(params_count(params)==2 && params_integer(2,params)==0) {
+            char *addr;
+            int file;
+            file = fs_filenew((char*)params[2], 0, 1);
+            if(file != STATUS_ERROR) {
+               for(addr=&_flash_start; addr<&_flash_end; addr+=512)
+                  fs_fileappend(file, addr, 512);
+               fs_flush();
+            }
+         }
+         break;
+      case 0x0c69: //ram_writefile
+         if(params_count(params)==2 && params_integer(2,params)==0) {
+            char *addr;
+            int file;
+            file = fs_filenew((char*)params[2], 0, 1);
+            if(file != STATUS_ERROR) {
+               for(addr=&_ram_start; addr<&_ram_end; addr+=512)
+                  fs_fileappend(file, addr, 512);
+               fs_flush();
+            }
+         }
+         break;
       default:
          output("Unknown command", eOutputSubsystemSystem, eOutputLevelImportant);
    }

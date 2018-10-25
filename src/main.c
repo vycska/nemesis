@@ -41,8 +41,8 @@ volatile unsigned int gInterruptCause = 0;
 void main(void) {
    char *command, buf[64];
    unsigned char uart_output_mask_value, data[8];
-   int i, l, t;
    unsigned short count_startups;
+   int i, l, config_load_result;
    unsigned int cause;
    struct timer timer_flush;
 
@@ -52,17 +52,13 @@ void main(void) {
    SYSAHBCLKCTRL |= (1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7 | 1<<10 | 1<<11 | 1<<14 | 1<<18 | 1<<24); //enable clock for ROM, RAM0_1, FLASHREG, FLASH, I2C0, GPIO, SWM, MRT, SPI0, USART0, IOCON, ADC
    PRESETCTRL |= (1<<0 | 1<<2 | 1<<3 | 1<<6 | 1<<7 | 1<<10 | 1<<11 | 1<<24); //clear SPI0, USART FRG, USART0, I2C0, MRT, GPIO, flash controller, ADC reset
 
-   PLL_Init();
-   LED_Init(1);
-   SPI0_Init();
-   UART_Init();
-
+   //PLL_Init() LED_Init(1) SPI0_Init() UART_Init() igyvendinti bootloader'yje
    ADC_Init();
    I2C0_Init();
    MRT_Init();
    Switch_Init();
 
-   MRT0_Delay(2*1000);
+   MRT0_Delay(2*1000); //2ms gali reiketi iki komunikacijos su BME280
 
    BME280_Init();
    DS18B20_Init();
@@ -79,12 +75,12 @@ void main(void) {
 
    timer_set(&timer_flush, 3600); //1 hour
 
-   t = config_load();
+   config_load_result = config_load();
 
    fs_mount();
    if(fs_checkdisk()==STATUS_ERROR) {
-      fs_format();
       output("fs_checkdisk error", eOutputSubsystemSystem, eOutputLevelImportant);
+      fs_format();
    }
 
    Fifo_Command_Parser_Init();
@@ -104,7 +100,7 @@ void main(void) {
             mysprintf(buf,"VERSION: %d",VERSION);
             break;
          case 3:
-            mysprintf(buf,"%s",t?"config_load error":"config_load ok");
+            mysprintf(buf,"%s",config_load_result?"config load error":"config load ok");
             break;
          case 4:
             mysprintf(buf, "_flash_start: %x [%u]", (unsigned int)&_flash_start,(unsigned int)&_flash_start);
@@ -149,18 +145,18 @@ void main(void) {
       output(buf, eOutputSubsystemSystem, eOutputLevelImportant);
    }
 
+   //BME280
+   if(BME280_GetID(data)==1) {
+      mysprintf(buf,"BME280 id: %x",(unsigned int)data[0]);
+      output(buf, eOutputSubsystemBME280, eOutputLevelNormal);
+   }
+
    //DS18B20
    if(DS18B20_ReadROM(data) == DS18B20_OK) {
       l = mysprintf(buf, "one-wire device: ");
       for(i = 0; i < 8; i++)
          l += mysprintf(&buf[l], "0x%x%s", (unsigned int)data[i], i == 7 ? " " : "-");
       output(buf, eOutputSubsystemDS18B20, eOutputLevelNormal);
-   }
-
-   //BME280 [2ms max time until communication]
-   if(BME280_GetID(data)==1) {
-      mysprintf(buf,"BME280 id: %x",(unsigned int)data[0]);
-      output(buf, eOutputSubsystemBME280, eOutputLevelNormal);
    }
 
    while(1) {
