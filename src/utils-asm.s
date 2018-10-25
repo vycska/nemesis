@@ -4,53 +4,53 @@
 
 .text
 
-.global DisableInterrupts
-.global EnableInterrupts
-.global StartCritical
-.global EndCritical
-.global WaitForInterrupt
-.global GetPSR
-.global _DSB
-.global _sp
+.global _disable_irq
+.global _enable_irq
+.global _start_critical
+.global _end_critical
+.global _wfi
+.global _get_psr
+.global _dsb
+.global _get_msp
 
 .thumb_func
-DisableInterrupts:
+_disable_irq:
 cpsid i
 bx lr
 
 .thumb_func
-EnableInterrupts:
+_enable_irq:
 cpsie i
 bx lr
 
 .thumb_func
-StartCritical:
+_start_critical:
 mrs r0,primask
 cpsid i
 bx lr
 
 .thumb_func
-EndCritical:
+_end_critical:
 msr primask,r0
 bx lr
 
 .thumb_func
-WaitForInterrupt:
+_wfi:
 wfi
 bx lr
 
 .thumb_func
-GetPSR:
+_get_psr:
 mrs r0,psr
 bx lr
 
 .thumb_func
-_DSB:
+_dsb:
 dsb sy
 bx lr
 
 .thumb_func
-_sp:
+_get_msp:
 mrs r0,msp
 bx lr
 

@@ -13,26 +13,26 @@ void DS18B20_Init(void) {
 
 int DS18B20_ReadROM(unsigned char *d) { //d t.b. 8 elementu baitu masyvas
    int i;
-   DisableInterrupts();
+   _disable_irq();
    onewire_reset();
    onewire_sendbyte(0x33);      //read rom
    for(i = 0; i < 8; i++)       //8 baitai duomenu, paskutinis crc
       d[i] = onewire_receivebyte();
-   EnableInterrupts();
+   _enable_irq();
    return onewire_crc8(d, 7) == d[7] ? DS18B20_OK : DS18B20_ERROR;
 }
 
 void DS18B20_ConvertTAll(void) {
-   DisableInterrupts();
+   _disable_irq();
    onewire_reset();
    onewire_sendbyte(0xcc);      //skip rom
    onewire_sendbyte(0x44);      //convert T
-   EnableInterrupts();
+   _enable_irq();
 }
 
 int DS18B20_ReadScratchpad(unsigned char *m, unsigned char *d) { //m yra NULL arba 8 baitu masyvas, data - 9 baitu masyvas
    int i;
-   DisableInterrupts();
+   _disable_irq();
    onewire_reset();
    if(m == 0)
       onewire_sendbyte(0xcc);   //skip rom
@@ -44,7 +44,7 @@ int DS18B20_ReadScratchpad(unsigned char *m, unsigned char *d) { //m yra NULL ar
    onewire_sendbyte(0xbe);      //read scratchpad
    for(i = 0; i < 9; i++)
       d[i] = onewire_receivebyte();
-   EnableInterrupts();
+   _enable_irq();
    return onewire_crc8(d, 8) == d[8] ? DS18B20_OK : DS18B20_ERROR;
 }
 

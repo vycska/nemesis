@@ -46,7 +46,8 @@ void main(void) {
    unsigned int cause;
    struct timer timer_flush;
 
-   EnableInterrupts();
+   ICPR0 = (0x3<<0 | 0x7<<3 | 0xffff<<7 | 0xff<<24); //clear all interrupt pending status
+   _enable_irq();
 
    PDRUNCFG &= (~(1<<0 | 1<<1 | 1<<2 | 1<<4 | 1<<7)); //IRC output, IRC, flash, ADC, PLL powered
    SYSAHBCLKCTRL |= (1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7 | 1<<10 | 1<<11 | 1<<14 | 1<<18 | 1<<24); //enable clock for ROM, RAM0_1, FLASHREG, FLASH, I2C0, GPIO, SWM, MRT, SPI0, USART0, IOCON, ADC
@@ -91,7 +92,7 @@ void main(void) {
    for(i=0; i<=16; i++) {
       switch(i) {
          case 0:
-            mysprintf(buf, "startup time: %u", startup_time);
+            mysprintf(buf, "\r\nstartup time: %u", startup_time);
             break;
          case 1:
             mysprintf(buf,"build time: %s %s",__DATE__,__TIME__);
@@ -166,21 +167,21 @@ void main(void) {
                Handle_Command(command);
          }
          if(cause & (1<<1)) { //alarm1
-            DisableInterrupts();
+            _disable_irq();
             gInterruptCause &= (~(1<<1));
-            EnableInterrupts();
+            _enable_irq();
             Handle_Measurements();
             Handle_Log();
          }
          if(cause & (1<<2)) { //alarm2
-            DisableInterrupts();
+            _disable_irq();
             gInterruptCause &= (~(1<<2));
-            EnableInterrupts();
+            _enable_irq();
          }
          if(cause & (1<<3)) { //button released
-            DisableInterrupts();
+            _disable_irq();
             gInterruptCause &= (~(1<<3));
-            EnableInterrupts();
+            _enable_irq();
             mysprintf(buf, "switch %d",switch_data.duration);
             output(buf, eOutputSubsystemSwitch, eOutputLevelDebug);
          }
@@ -190,9 +191,9 @@ void main(void) {
                output_data.channel_mask |= (uart_output_mask_value<<eOutputChannelUART); //atstatau output'inimo per uart'a mask reiksme
                uart_data.i = 0;
                uart_data.mode = 0;
-               DisableInterrupts();
+               _disable_irq();
                gInterruptCause &= (~(1<<4));
-               EnableInterrupts();
+               _enable_irq();
             }
          }
          if(cause & (1<<5)) { //xmodem receiving file
@@ -201,9 +202,9 @@ void main(void) {
                output_data.channel_mask |= (uart_output_mask_value<<eOutputChannelUART); //atstatau output'inimo per uart'a mask reiksme [dabar ten reiksme 0]
                uart_data.i = 0;
                uart_data.mode = 0;
-               DisableInterrupts();
+               _disable_irq();
                gInterruptCause &= (~(1<<5));
-               EnableInterrupts();
+               _enable_irq();
             }
          }
       }
@@ -212,9 +213,9 @@ void main(void) {
          fs_flush();
          timer_restart(&timer_flush);
       }
-      DisableInterrupts();
+      _disable_irq();
       if(gInterruptCause == 0 && !switch_data.active) {
-         EnableInterrupts();
+         _enable_irq();
          LED_Off();
          //go to deep sleep
          PCON = (PCON & (~(0x7<<0))) | (1<<0); //deep-sleep mode
@@ -226,7 +227,7 @@ void main(void) {
          MAINCLKUEN = 0;
          MAINCLKUEN = 1; //update clock source
          SCR = (SCR&(~(0x1<<1 | 0x1<<2))) | (0<<1 | 1<<2); //do not sleep when returning to thread mode, deep sleep is processor's low power mode
-         WaitForInterrupt();
+         _wfi();
          //returned form deep sleep
          MAINCLKSEL = 0x3; //clock source for main clock is PLL output
          MAINCLKUEN = 0;
@@ -234,7 +235,7 @@ void main(void) {
          PCON &= (~(0x7<<0));
          LED_On();
       }
-      EnableInterrupts();
+      _enable_irq();
    }
 }
 
@@ -249,8 +250,8 @@ void init(void) {
 }
 
 void SystemReset(void) {
-   _DSB();
+   _dsb();
    AIRCR = (AIRCR & (~(1<<1 | 1<<2 | 0xffffu<<16))) | (1<<2 | 0x5fau<<16);
-   _DSB();
+   _dsb();
    while(1);
 }

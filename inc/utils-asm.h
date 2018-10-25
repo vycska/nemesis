@@ -3,13 +3,13 @@
 
 #include <stdint.h>
 
-void DisableInterrupts(void);
-void EnableInterrupts(void);
-uint32_t StartCritical(void);
-void EndCritical(int);
-void WaitForInterrupt(void);
-uint32_t GetPSR(void);
-void _DSB(void);
-unsigned int _sp(void);
+void _disable_irq(void);
+void _enable_irq(void);
+uint32_t _start_critical(void);
+void _end_critical(uint32_t);
+void _wfi(void);
+uint32_t _get_psr(void);
+void _dsb(void);
+unsigned int _get_msp(void);
 
 #endif
