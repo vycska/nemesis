@@ -10,6 +10,7 @@
 #include "lpc824.h"
 
 #define FW_FILE_NAME ".fw"
+#define FW_FILE_MAGIC 0x12345678
 #define FW_FLASH_ADDR 0x1400
 #define FW_BLOCK_SIZE 1024 //dydis 1024 sutampa su sektoriaus dydziu, todel as naudoju erase_sector [o ne erase_page]
 
@@ -43,7 +44,7 @@ void main(void) {
       UART_Transmit("firmware file found", 1);
       size = fs_filesize(file);
       fs_fileread_datapart(file, 0, 12, (unsigned char*)data);
-      if(data[0] == 0x12345678 && data[1]+12<=size && data[1]>=FW_BLOCK_SIZE && data[1]<=0x8000-FW_FLASH_ADDR) {
+      if(data[0] == FW_FILE_MAGIC && data[1]+12<=size && data[1]>=FW_BLOCK_SIZE && data[1]<=0x8000-FW_FLASH_ADDR) {
          UART_Transmit("firmware file ok", 1);
          for(sum=0,i=0; i<(data[1]>>9); i++) {
             fs_fileread_datapart(file, 12+i*FW_BLOCK_SIZE, FW_BLOCK_SIZE, buf);
