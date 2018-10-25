@@ -9,9 +9,9 @@
 #include "utils-asm.h"
 #include "lpc824.h"
 
-#define FW_FILE_NAME "nemesis-app.fw"
+#define FW_FILE_NAME ".fw"
 #define FW_FLASH_ADDR 0x1400
-#define FW_BLOCK_SIZE 512
+#define FW_BLOCK_SIZE 1024 //dydis 1024 sutampa su sektoriaus dydziu, todel as naudoju erase_sector [o ne erase_page]
 
 extern char _data_start_lma, _data_start, _data_end, _bss_start, _bss_end;
 
@@ -39,13 +39,13 @@ void main(void) {
    if(fs_checkdisk()==STATUS_ERROR)
       fs_format();
 
-   if((file=fs_filesearch(FW_FILE_NAME)) != STATUS_ERROR) {
+   if((file=fs_filesearch_tail(FW_FILE_NAME)) != STATUS_ERROR) {
       UART_Transmit("firmware file found", 1);
       size = fs_filesize(file);
       fs_fileread_datapart(file, 0, 12, (unsigned char*)data);
-      if(data[0] == 0x12345678 && data[2]+12<=size && data[2]<=27*1024) {
+      if(data[0] == 0x12345678 && data[1]+12<=size && data[1]>=FW_BLOCK_SIZE && data[1]<=0x8000-FW_FLASH_ADDR) {
          UART_Transmit("firmware file ok", 1);
-         for(sum=0,i=0; i<(data[2]>>9); i++) {
+         for(sum=0,i=0; i<(data[1]>>9); i++) {
             fs_fileread_datapart(file, 12+i*FW_BLOCK_SIZE, FW_BLOCK_SIZE, buf);
             for(j=0; j<FW_BLOCK_SIZE; j++) {
                sum = (sum>>1) + ((sum&1)<<15);
@@ -53,11 +53,12 @@ void main(void) {
                sum &= 0xffff;
             }
          }
-         if(sum == data[1]) {
+         if(sum == data[2]) {
             UART_Transmit("checksum ok", 1);
-            for(error=0, i=0; i<(data[2]>>9) && !error; i++) {
+            for(error=0, i=0; i<(data[1]>>9) && !error; i++) {
                fs_fileread_datapart(file, 12+i*FW_BLOCK_SIZE, FW_BLOCK_SIZE, buf);
-               res = iap_erase_page((FW_FLASH_ADDR+i*FW_BLOCK_SIZE)>>6, (FW_FLASH_ADDR+i*FW_BLOCK_SIZE+FW_BLOCK_SIZE-1)>>6);
+               //res = iap_erase_page((FW_FLASH_ADDR+i*FW_BLOCK_SIZE)>>6, (FW_FLASH_ADDR+i*FW_BLOCK_SIZE+FW_BLOCK_SIZE-1)>>6);
+               res = iap_erase_sectors((FW_FLASH_ADDR+i*FW_BLOCK_SIZE)>>10, (FW_FLASH_ADDR+i*FW_BLOCK_SIZE+FW_BLOCK_SIZE-1)>>10);
                if(res == IAP_CMD_SUCCESS) {
                   res = iap_copy_ram_to_flash(FW_FLASH_ADDR+i*FW_BLOCK_SIZE, buf, FW_BLOCK_SIZE);
                   if(res == IAP_CMD_SUCCESS) {
@@ -76,7 +77,7 @@ void main(void) {
                   }
                }
                else {
-                  UART_Transmit("erase pages error", 1);
+                  UART_Transmit("erase sector error", 1);
                   error = 1;
                }
             }
