@@ -6,7 +6,7 @@
 void _disable_irq(void);
 void _enable_irq(void);
 void _dsb(void);
-unsigned int _get_msp(void);
-void _set_msp(unsigned int);
+uint32_t _get_msp(void);
+void _set_msp(uint32_t);
 
 #endif

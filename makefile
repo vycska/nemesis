@@ -1,4 +1,4 @@
-# make a c i p t r-<variable>
+# make a c ca i p t r-<variable>
 
 ################################################################################
 
@@ -38,7 +38,7 @@ $(TARGET).elf : $(AOBJS) $(COBJS)
 	arm-none-eabi-gcc $^ $(LDFLAGS) $(LDLIBS) -o $@
 	arm-none-eabi-objdump -d -S -z -w $@ > $(TARGET).lst
 	arm-none-eabi-objcopy -O ihex $@ $(TARGET).hex
-	arm-none-eabi-objcopy -O binary $@ $(TARGET).bin
+	arm-none-eabi-objcopy -O binary $@ $(TARGET).nib
 	find . -name '*.c' | xargs -n1 wc -l | sort -n -r | sed --silent '1,5p'
 	arm-none-eabi-nm -S --size-sort -r $(TARGET).elf | sed --silent '1,5p'
 	arm-none-eabi-size --format=sysv --common -d $(TARGET).elf
@@ -56,12 +56,15 @@ deps/%.d : ;
 
 ################################################################################
 
-.PHONY : a c i p t r-%
+.PHONY : a c ca i p t r-%
 
 a : $(TARGET).elf
 
 c :
-	rm -rf *.o *.elf *.bin *.hex *.map *.lst *.png cscope* tags deps objs
+	rm -rf *.o *.elf *.bin *.hex *.map *.lst cscope* tags deps objs
+
+ca : c
+	rm -f *.nib
 
 i : a
 	~/bin/lpc21isp -verify -bin $(TARGET).bin /dev/ttyUSB0 115200 12000
