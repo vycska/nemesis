@@ -1,8 +1,9 @@
-# make a c i p t r-<variable>
+# make a f c ca i p t r-<variable>
 
 ################################################################################
 
 TARGET := nemesis-app
+BOOTLOADER := nemesis-boot
 
 DEBUG := 0
 OPTIM := O1
@@ -44,6 +45,9 @@ $(TARGET).elf : $(AOBJS) $(COBJS)
 	arm-none-eabi-nm -S --size-sort -r $(TARGET).elf | sed --silent '1,5p'
 	arm-none-eabi-size --format=sysv --common -d $(TARGET).elf
 
+$(firstword $(subst -, ,$(TARGET))).bin : $(BOOTLOADER).nib $(TARGET).bin
+	cat $^ > $@
+
 objs/%.o : %.s
 	arm-none-eabi-gcc $< -c $(CFLAGS) $(ASFLAGS) -o $@
 
@@ -57,15 +61,20 @@ deps/%.d : ;
 
 ################################################################################
 
-.PHONY : a c i p t r-%
+.PHONY : a f c ca i p t r-%
 
 a : $(TARGET).elf
+
+f : $(firstword $(subst -, ,$(TARGET))).bin
 
 c :
 	rm -rf *.o *.elf *.bin *.hex *.fw *.map *.lst *.png cscope* tags deps objs
 
+ca : c
+	rm -f *.nib
+
 i : a
-	~/bin/lpc21isp -verify -bin $(TARGET).bin /dev/ttyUSB0 115200 12000
+	~/bin/lpc21isp -donotstart -verify -bin $(firstword $(subst -, ,$(TARGET))).bin /dev/ttyUSB0 115200 12000
 
 p :
 	picocom --baud 38400 --databits 8 --stopbits 1 --parity n --flow n --send-cmd 'sx -vv' --receive-cmd 'rx -vv' --logfile 'logs/picocom.log' --echo --quiet /dev/ttyUSB0
