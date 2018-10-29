@@ -83,7 +83,7 @@ for(i in 2:(l+1)) {
       abline(v=x[k], lty=2)
       abline(v=x[i-1], lty=2)
       text(x[k], par('usr')[3], format(x[k],"%H:%M",tz="GMT"), pos=3)
-      text(x[i-1], par('usr')[3], format(x[i-1],"%H:%M",tz="GMT"), pos=3)
+      text(x[i-1], par('usr')[4], format(x[i-1],"%H:%M",tz="GMT"), pos=1)
       k <- i
    }
 }
