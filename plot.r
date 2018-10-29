@@ -65,7 +65,7 @@ if(type==1) {
 }
 
 plot(0, 0, type="n", main=day, xlab="laikas", ylab=baly, xlim=c(day, day+86400), ylim=mily, xaxt="n")
-axis(side=1, at=seq(day, day+86400, len=9), labels=format(seq(day, day+86400, len=9),"%H:%M"))
+axis(side=1, at=seq(day, day+86400, len=9), labels=format(seq(day, day+86400, len=9),"%H:%M",tz="GMT"))
 k <- 1
 for(i in 2:(l+1)) {
    if(i==l+1 || x[i] != x[i-1]+60) {
@@ -91,33 +91,33 @@ for(i in 2:(l+1)) {
 if(type==1) {
    for(t in 2:4) {
       for(i in 1:2) {
-         m <- which(df[,t] == ifelse(i==1,mn,mx))
+         m <- (which(df[filter,t] == ifelse(i==1,mn,mx)))
          if(length(m)>0) {
-            points(df$date[m[1]], df[m[1],t], pch=19, col="black")
-            text(df$date[m[1]], df[m[1],t], sprintf("%.1f [%s]", df[m[1],t], format(df$date[m[1]], "%H:%M")), pos=ifelse(i==1,1,3))
+            points((df$date[filter])[m[1]], (df[filter,t])[m[1]], pch=19, col="black")
+            text((df$date[filter])[m[1]], (df[filter,t])[m[1]], sprintf("%.1f [%s]", (df[filter,t])[m[1]], format((df$date[filter])[m[1]], "%H:%M", tz="GMT")), pos=ifelse(i==1,1,3))
          }
       }
    }
    legend("bottomright", legend=c("ds18b20", "bme280", "ds3231"), col=c("red", "blue", "green"), lwd=2)
 } else if(type==2) {
    for(i in 1:2) {
-      m <- which(df$bme280_hum == ifelse(i==1,mn,mx))
-      points(df$date[m[1]], df$bme280_hum[m[1]], pch=19, col="black")
-      text(df$date[m[1]], df$bme280_hum[m[1]], sprintf("%.1f [%s]", df$bme280_hum[m[1]], format(df$date[m[1]], "%H:%M")), pos=ifelse(i==1,1,3))
+      m <- which(df$bme280_hum[filter] == ifelse(i==1,mn,mx))
+      points((df$date[filter])[m[1]], (df$bme280_hum[filter])[m[1]], pch=19, col="black")
+      text((df$date[filter])[m[1]], (df$bme280_hum[filter])[m[1]], sprintf("%.1f [%s]", (df$bme280_hum[filter])[m[1]], format((df$date[filter])[m[1]], "%H:%M", tz="GMT")), pos=ifelse(i==1,1,3))
    }
    legend("bottomright", legend="bme280", col="blue", lwd=2)
 } else if(type==3) {
    for(i in 1:2) {
-      m <- which(df$bme280_pres == ifelse(i==1,mn,mx))
-      points(df$date[m[1]], df$bme280_pres[m[1]], pch=19, col="black")
-      text(df$date[m[1]], df$bme280_pres[m[1]], sprintf("%.1f [%s]", df$bme280_pres[m[1]], format(df$date[m[1]], "%H:%M")), pos=ifelse(i==1,1,3))
+      m <- which(df$bme280_pres[filter] == ifelse(i==1,mn,mx))
+      points((df$date[filter])[m[1]], (df$bme280_pres[filter])[m[1]], pch=19, col="black")
+      text((df$date[filter])[m[1]], (df$bme280_pres[filter])[m[1]], sprintf("%.1f [%s]", (df$bme280_pres[filter])[m[1]], format((df$date[filter])[m[1]], "%H:%M", tz="GMT")), pos=ifelse(i==1,1,3))
    }
    legend("bottomright", legend="bme280", col="red", lwd=2)
 } else if(type==4) {
    for(i in 1:2) {
-      m <- which(df$adc_bat == ifelse(i==1,mn,mx))
-      points(df$date[m[1]], df$adc_bat[m[1]], pch=19, col="black")
-      text(df$date[m[1]], df$adc_bat[m[1]], sprintf("%.2f [%s]", df$adc_bat[m[1]], format(df$date[m[1]], "%H:%M")), pos=ifelse(i==1,1,3))
+      m <- which(df$adc_bat[filter] == ifelse(i==1,mn,mx))
+      points((df$date[filter])[m[1]], (df$adc_bat[filter])[m[1]], pch=19, col="black")
+      text((df$date[filter])[m[1]], (df$adc_bat[filter])[m[1]], sprintf("%.2f [%s]", (df$adc_bat[filter])[m[1]], format((df$date[filter])[m[1]], "%H:%M", tz="GMT")), pos=ifelse(i==1,1,3))
    }
    legend("bottomright", legend="adc", col="black", lwd=2)
 }
