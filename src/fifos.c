@@ -13,7 +13,7 @@ void Fifo_Command_Parser_Init(void) {
 int Fifo_Command_Parser_Get(char **pString) {
    int res;
    if(fifo_command_parser.count>0) {
-      *pString = fifo_command_parser.buffer[fifo_command_parser.i_get];
+      *pString = (char*)fifo_command_parser.buffer[fifo_command_parser.i_get];
       fifo_command_parser.i_get = (fifo_command_parser.i_get + 1) & (FIFO_COMMAND_PARSER_ITEMS-1);
       fifo_command_parser.count -= 1;
       res = 1;
@@ -24,7 +24,7 @@ int Fifo_Command_Parser_Get(char **pString) {
 
 void Fifo_Command_Parser_Put(char *pString) {
    if(fifo_command_parser.count<FIFO_COMMAND_PARSER_ITEMS) {
-      strcpy(fifo_command_parser.buffer[fifo_command_parser.i_put], pString);
+      strcpy((char*)fifo_command_parser.buffer[fifo_command_parser.i_put], pString);
       fifo_command_parser.i_put = (fifo_command_parser.i_put + 1) & (FIFO_COMMAND_PARSER_ITEMS-1);
       fifo_command_parser.count += 1;
    }

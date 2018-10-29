@@ -6,7 +6,7 @@
 
 extern volatile unsigned int gInterruptCause;
 
-volatile struct Switch_Data switch_data;
+struct Switch_Data switch_data;
 
 void Switch_Init(void) {
    PINENABLE0 |= (1<<5); //SWDIO disabled on PIO0_2

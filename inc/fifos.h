@@ -6,13 +6,15 @@
 #define FIFO_XMODEM_SENDING_ITEMS 16
 
 struct Fifo_Command_Parser {
-   char buffer[FIFO_COMMAND_PARSER_ITEMS][FIFO_COMMAND_PARSER_ITEM_SIZE];
-   int i_get, i_put, count;
+   volatile char buffer[FIFO_COMMAND_PARSER_ITEMS][FIFO_COMMAND_PARSER_ITEM_SIZE];
+   volatile int count;
+   int i_get, i_put;
 };
 
 struct Fifo_Xmodem_Sending {
-   char data[FIFO_XMODEM_SENDING_ITEMS];
-   int i_get, i_put, count;
+   volatile char data[FIFO_XMODEM_SENDING_ITEMS];
+   volatile int count;
+   int i_get, i_put;
 };
 
 void Fifo_Command_Parser_Init(void);

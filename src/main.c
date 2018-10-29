@@ -32,7 +32,6 @@ extern char _flash_size, _ram_size, _intvecs_size, _text_size, _rodata_size, _da
 
 extern struct pt pt_xmodem_sending, pt_xmodem_receiving;
 extern struct Output_Data output_data;
-extern struct UART_Data uart_data;
 extern volatile struct Switch_Data switch_data;
 
 unsigned int startup_time;
@@ -192,8 +191,8 @@ void main(void) {
             if(PT_SCHEDULE(Handle_Xmodem_Sending(&pt_xmodem_sending))==0) {
                uart_output_mask_value = (output_data.channel_mask>>eOutputChannelLast)&1;
                output_data.channel_mask |= (uart_output_mask_value<<eOutputChannelUART); //atstatau output'inimo per uart'a mask reiksme
-               uart_data.i = 0;
-               uart_data.mode = 0;
+               UART_ReceivingMode_Change(eUARTReceivingModeCommands);
+               UART_ReceivingData_Reset();
                _disable_irq();
                gInterruptCause &= (~(1<<4));
                _enable_irq();
@@ -203,8 +202,8 @@ void main(void) {
             if(PT_SCHEDULE(Handle_Xmodem_Receiving(&pt_xmodem_receiving))==0) {
                uart_output_mask_value = (output_data.channel_mask>>eOutputChannelLast)&1;
                output_data.channel_mask |= (uart_output_mask_value<<eOutputChannelUART); //atstatau output'inimo per uart'a mask reiksme [dabar ten reiksme 0]
-               uart_data.i = 0;
-               uart_data.mode = 0;
+               UART_ReceivingMode_Change(eUARTReceivingModeCommands);
+               UART_ReceivingData_Reset();
                _disable_irq();
                gInterruptCause &= (~(1<<5));
                _enable_irq();

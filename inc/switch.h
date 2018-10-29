@@ -2,7 +2,7 @@
 #define __SWITCH_H__
 
 struct Switch_Data {
-   int active,delay,duration;
+   volatile int active,delay,duration;
 };
 
 void Switch_Init(void);

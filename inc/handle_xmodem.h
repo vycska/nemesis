@@ -21,10 +21,10 @@ enum XmodemReceiveState {
 
 struct Handle_Xmodem_Data {
    char receiving_file[MAX_FILE_NAME_SIZE];
-   unsigned char receiving_data[132];
-   int receiving_lost,
-       receiving_size,
-       receiving_ready;
+   volatile unsigned char receiving_data[132];
+   volatile int receiving_ready,
+                receiving_size,
+                receiving_lost;
    int sending_file;
 };
 

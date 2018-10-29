@@ -24,7 +24,6 @@ extern struct BME280_Data bme280_data;
 extern struct Handle_Measurements_Data handle_measurements_data;
 extern struct Handle_Xmodem_Data handle_xmodem_data;
 extern struct Output_Data output_data;
-extern struct UART_Data uart_data;
 
 void Handle_Command(char *pString) {
    char buf[128];
@@ -467,8 +466,8 @@ void Handle_Command(char *pString) {
             output_data.channel_mask &= (~(1<<eOutputChannelUART));
             handle_xmodem_data.sending_file = params[2];
             gInterruptCause |= (1<<4);
-            uart_data.i = 0;
-            uart_data.mode = 1;
+            UART_ReceivingMode_Change(eUARTReceivingModeXMODEMSending);
+            UART_ReceivingData_Reset();
          }
          else {
             mysprintf(buf, "%d", handle_xmodem_data.sending_file);
@@ -488,8 +487,8 @@ void Handle_Command(char *pString) {
             strcpy(handle_xmodem_data.receiving_file, (char*)params[2]);
             gInterruptCause |= (1<<5);
             handle_xmodem_data.receiving_ready = 0;
-            uart_data.i = 0;
-            uart_data.mode = 2;
+            UART_ReceivingMode_Change(eUARTReceivingModeXMODEMReceiving);
+            UART_ReceivingData_Reset();
          }
          break;
       case 0x88a2: //iflash_writefile

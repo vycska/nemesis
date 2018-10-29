@@ -12,7 +12,7 @@
 extern volatile unsigned int gInterruptCause;
 extern struct Handle_Xmodem_Data handle_xmodem_data;
 
-struct UART_Data uart_data;
+static struct UART_Data uart_data;
 
 //baudrate: 9600, main_clock: 60000000, uartdiv: 250, divided_clock: 240000, mult: 144, u_pclk: 153600, brgval: 1
 //baudrate: 38400, main_clock: 60000000, uartdiv: 5, divided_clock: 12000000, mult: 244, u_pclk: 6144000, brgcal: 10
@@ -45,7 +45,7 @@ void UART0_IRQHandler(void) {
    if(USART0INTSTAT&(1<<0)) { //RXRDY
       c = USART0RXDAT&0xff;
       switch(uart_data.mode) {
-         case 0: //normal default command receiving
+         case eUARTReceivingModeCommands:
             if(isprint(c)) {
                uart_data.s[uart_data.i++] = c;
                if(uart_data.i>=UART_IN_MAX)
@@ -57,14 +57,14 @@ void UART0_IRQHandler(void) {
                Fifo_Command_Parser_Put(uart_data.s);
             }
             break;
-         case 1: //XMODEM sending
+         case eUARTReceivingModeXMODEMSending:
             Fifo_Xmodem_Sending_Put(c);
             break;
-         case 2: //XMODEM receiving
+         case eUARTReceivingModeXMODEMReceiving:
             uart_data.s[uart_data.i++] = c;
             if((uart_data.i==1 && (c==CAN || c==EOT)) || uart_data.i==132) {
                if(handle_xmodem_data.receiving_ready==0) {
-                  memcpy(handle_xmodem_data.receiving_data, uart_data.s, uart_data.i);
+                  memcpy((char*)handle_xmodem_data.receiving_data, uart_data.s, uart_data.i);
                   handle_xmodem_data.receiving_size = uart_data.i;
                   handle_xmodem_data.receiving_ready = 1;
                }
@@ -74,4 +74,12 @@ void UART0_IRQHandler(void) {
             break;
       }
    }
+}
+
+void UART_ReceivingMode_Change(enum UARTReceivingMode m) {
+   uart_data.mode = m;
+}
+
+void UART_ReceivingData_Reset(void) {
+   uart_data.i = 0;
 }
