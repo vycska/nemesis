@@ -44,7 +44,6 @@ void main(void) {
    int i, l, config_load_result;
    unsigned int cause;
    float used_value;
-   struct timer timer_flush;
 
    ICPR0 = (0x3<<0 | 0x7<<3 | 0xffff<<7 | 0xff<<24); //clear all interrupt pending status
    _enable_irq();
@@ -74,8 +73,6 @@ void main(void) {
       count_startups += 1;
       AT24C32_write(0x0, (unsigned char*)&count_startups, sizeof(unsigned short));
    }
-
-   timer_set(&timer_flush, 3600); //1 hour
 
    config_load_result = config_load();
 
@@ -169,23 +166,25 @@ void main(void) {
                Handle_Command(command);
          }
          if(cause & (1<<1)) { //alarm1
+            Handle_Measurements();
+            Handle_Log();
             _disable_irq();
             gInterruptCause &= (~(1<<1));
             _enable_irq();
-            Handle_Measurements();
-            Handle_Log();
          }
          if(cause & (1<<2)) { //alarm2
+            output("periodic fs flush", eOutputSubsystemSystem, eOutputLevelDebug);
+            fs_flush();
             _disable_irq();
             gInterruptCause &= (~(1<<2));
             _enable_irq();
          }
          if(cause & (1<<3)) { //button released
+            mysprintf(buf, "switch %d",switch_data.duration);
+            output(buf, eOutputSubsystemSwitch, eOutputLevelDebug);
             _disable_irq();
             gInterruptCause &= (~(1<<3));
             _enable_irq();
-            mysprintf(buf, "switch %d",switch_data.duration);
-            output(buf, eOutputSubsystemSwitch, eOutputLevelDebug);
          }
          if(cause & (1<<4)) { //xmodem sending file
             if(PT_SCHEDULE(Handle_Xmodem_Sending(&pt_xmodem_sending))==0) {
@@ -209,11 +208,6 @@ void main(void) {
                _enable_irq();
             }
          }
-      }
-      if(timer_expired(&timer_flush)) {
-         output("periodic fs_flush)", eOutputSubsystemSystem, eOutputLevelDebug);
-         fs_flush();
-         timer_restart(&timer_flush);
       }
       _disable_irq();
       if(gInterruptCause == 0 && !switch_data.active) {
