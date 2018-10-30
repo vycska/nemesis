@@ -23,7 +23,7 @@ PT_THREAD(Handle_Xmodem_Sending(struct pt *pt)) {
               file_size;
    PT_BEGIN(pt);
    timer_set(&timer_xmodem, 100);
-   PT_WAIT_UNTIL(&pt_xmodem_sending, (received_data=0,Fifo_Xmodem_Sending_Get(&received_data)==1) || timer_expired(&timer_xmodem));
+   PT_WAIT_UNTIL(&pt_xmodem_sending, (received_data=0,(Fifo_Xmodem_Sending_Get(&received_data)==1 && received_data==NAK)) || timer_expired(&timer_xmodem));
    if(received_data==NAK) {
       for(end=0,block=1,file_read=0,file_size=(!fs_direntryempty(handle_xmodem_data.sending_file)?fs_filesize(handle_xmodem_data.sending_file):0); file_read<=file_size && !end; block=(block+1)&0xff, file_read+=data_length) {
          if(file_read<file_size) {
