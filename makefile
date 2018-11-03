@@ -1,4 +1,4 @@
-# make a f c ca i p t r-<variable>
+# make a f c ca i p t s-<file> r-<variable>
 
 ################################################################################
 
@@ -61,7 +61,7 @@ deps/%.d : ;
 
 ################################################################################
 
-.PHONY : a f c ca i p t r-%
+.PHONY : a f c ca i p t s-% r-%
 
 a : $(TARGET).elf
 
@@ -83,6 +83,9 @@ t :
 	ctags -R --extra=+f *
 	find . -name '*.[csh]' > cscope.files
 	cscope -q -R -b -i cscope.files
+
+s-% :
+	hexdump -s 2 -n $$(($$(hexdump -n 2 -e '1/2 "%u"' $*)*4)) -e '1/4 "@%u\n"' $* | date -u -f - +'%F %T'
 
 r-% :
 	@echo $* = $($*)

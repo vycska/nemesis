@@ -26,6 +26,8 @@
 #include "pt.h"
 #include "timer.h"
 
+void DeepSleep_Init(void);
+
 extern char _data_start_lma, _data_start, _data_end, _bss_start, _bss_end;
 extern char _flash_start, _flash_end, _ram_start, _ram_end;
 extern char _flash_size, _ram_size, _intvecs_size, _text_size, _rodata_size, _data_size, _fill_size, _bss_size, _stack_size, _heap_size;
@@ -58,6 +60,8 @@ void main(void) {
    I2C0_Init(); //I2C0 pins P0.10 (SCL) and P0.11 (SDA); I2C0 used by BME280 and AT24C32
    MRT_Init();
    Switch_Init(); //switch on pin P0.2
+
+   DeepSleep_Init();
 
    MRT0_Delay(2*1000); //2ms gali reiketi iki komunikacijos su BME280
 
@@ -213,22 +217,15 @@ void main(void) {
       if(gInterruptCause == 0 && !switch_data.active) {
          _enable_irq();
          LED_Off();
-         //go to deep sleep
-         PCON = (PCON & (~(0x7<<0))) | (1<<0); //deep-sleep mode
-         PDSLEEPCFG |= (1<<3 | 1<<6); //BOD for deep-sleep powered down, watchdog oscillator for deep-sleep powered down
-         PDAWAKECFG = (0<<0 | 0<<1 | 0<<2 | 1<<3 | 0<<4 | 1<<5 | 1<<6 | 0<<7 | 0xd<<8 | 0x6<<12 | 1<<15); //power configuration after wake up: IRC oscillator output powered, IRC oscillator power-down powered, flash powered, BOD powered down, ADC powered, crystal oscillator powered down, watchdog oscillator powered down, system PLL powered, ACMP powered down
-         STARTERP0 = (1<<0 | 1<<1); //GPIO pint interrupt 0 and 1 wake-up enabled
-         STARTERP1 = 0; //all other interrupts for wake-up disabled
+         //go to deep sleep [it is already configured]
          MAINCLKSEL = 0; //clock source for main clock is IRC
          MAINCLKUEN = 0;
          MAINCLKUEN = 1; //update clock source
-         SCR = (SCR&(~(0x1<<1 | 0x1<<2))) | (0<<1 | 1<<2); //do not sleep when returning to thread mode, deep sleep is processor's low power mode
          _wfi();
          //returned form deep sleep
          MAINCLKSEL = 0x3; //clock source for main clock is PLL output
          MAINCLKUEN = 0;
          MAINCLKUEN = 1; //update clock source
-         PCON &= (~(0x7<<0));
          LED_On();
       }
       _enable_irq();
@@ -243,6 +240,15 @@ void init(void) {
    //zero bss
    for(dst = &_bss_start; dst < &_bss_end; dst++)
       *dst = 0;
+}
+
+void DeepSleep_Init(void) {
+   PCON = (PCON & (~(0x7<<0))) | (1<<0); //deep-sleep mode
+   PDSLEEPCFG |= (1<<3 | 1<<6); //BOD for deep-sleep powered down, watchdog oscillator for deep-sleep powered down
+   PDAWAKECFG = (0<<0 | 0<<1 | 0<<2 | 1<<3 | 0<<4 | 1<<5 | 1<<6 | 0<<7 | 0xd<<8 | 0x6<<12 | 1<<15); //power configuration after wake up: IRC oscillator output powered, IRC oscillator power-down powered, flash powered, BOD powered down, ADC powered, crystal oscillator powered down, watchdog oscillator powered down, system PLL powered, ACMP powered down
+   STARTERP0 = (1<<0 | 1<<1); //GPIO pint interrupt 0 and 1 wake-up enabled
+   STARTERP1 = 0; //all other interrupts for wake-up disabled
+   SCR = (SCR&(~(0x1<<1 | 0x1<<2))) | (0<<1 | 1<<2); //do not sleep when returning to thread mode, deep sleep is processor's low power mode
 }
 
 void SystemReset(void) {
