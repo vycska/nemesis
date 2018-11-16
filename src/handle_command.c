@@ -530,7 +530,7 @@ void params_fill(char *s, unsigned int *params) {
    for(p = s, d = 1, k = 0, l = strlen(s), i = 0; i <= l; i++) {
       if(s[i] == ' ' || i == l) {
          s[i] = 0;
-         params[k + 1] = d ? (params[0] |= (1 << (16 + k)), atoi(p)) : (unsigned int)p;
+         params[k + 1] = d ? (params[0] |= (1 << (16 + k+1)), atoi(p)) : (unsigned int)p;
          k += 1;
          d = 1;
          p = &s[i + 1];
