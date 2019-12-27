@@ -16,9 +16,9 @@ CDEPS := $(patsubst %.c,deps/%.d,$(CSRCS))
 COBJS := $(addprefix objs/,$(CSRCS:.c=.o))
 
 ASFLAGS := -Wa,--warn -Wa,--fatal-warnings
-CPPFLAGS := -I inc -I inc/pt -I inc/uip -I /usr/arm-none-eabi/include
+CPPFLAGS := -I inc -I inc/pt -I inc/uip -I /usr/arm-none-eabi/include -I /usr/lib/gcc/arm-none-eabi/9.2.0/include
 CFLAGS := -march=armv6-m -mcpu=cortex-m0plus -mthumb -mfloat-abi=soft -mlittle-endian -ffreestanding -fsigned-char -fdata-sections -ffunction-sections -Wall -Werror -Wno-unused-but-set-variable -$(OPTIM)
-LDFLAGS := -nostdlib -nostartfiles -nodefaultlibs -Llibs -L/usr/arm-none-eabi/lib/thumb/v6-m/nofp -L/usr/lib/gcc/arm-none-eabi/8.2.0/thumb/v6-m/nofp -T $(TARGET).ld -Wl,-Map=$(TARGET).map -Wl,--cref -Wl,--gc-sections -Wl,--print-memory-usage -Wl,--stats -Wl,--print-output-form
+LDFLAGS := -nostdlib -nostartfiles -nodefaultlibs -L/usr/arm-none-eabi/lib/thumb/v6-m/nofp -L/usr/lib/gcc/arm-none-eabi/9.2.0/thumb/v6-m/nofp -T $(TARGET).ld -Wl,-Map=$(TARGET).map -Wl,--cref -Wl,--gc-sections -Wl,--print-memory-usage -Wl,--stats -Wl,--print-output-form
 LDLIBS := -lm -lgcc -lc_nano -lnosys
 
 ifeq ($(DEBUG),1)
@@ -77,10 +77,10 @@ i : a
 	~/bin/lpc21isp -donotstart -verify -bin $(firstword $(subst -, ,$(TARGET))).bin /dev/ttyUSB0 115200 12000
 
 p :
-	picocom --baud 38400 --databits 8 --stopbits 1 --parity n --flow n --send-cmd 'sx -vv' --receive-cmd 'rx -vv' --logfile 'logs/picocom.log' --echo --quiet /dev/ttyUSB0
+	picocom --baud 38400 --databits 8 --stopbits 1 --parity n --flow n --send-cmd 'sx -vv' --receive-cmd 'rx -vv' --echo --quiet /dev/ttyUSB0
 
 t :
-	ctags -R --extra=+f *
+	ctags -R --extras=+f *
 	find . -name '*.[csh]' > cscope.files
 	cscope -q -R -b -i cscope.files
 

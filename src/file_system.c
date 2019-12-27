@@ -93,9 +93,9 @@ int fs_filenamevalid(char *file_name) {
    int i;
    for(i = 0; i < MAX_FILE_NAME_SIZE - 1
               &&
-              (  isalpha(file_name[i])
+              (  isalpha((int)file_name[i])
                  ||
-                 isdigit(file_name[i])
+                 isdigit((int)file_name[i])
                  ||
                  file_name[i] == '.'
                  ||
